@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@next/third-parties": "^15.3.3",
+    "date-fns": "^4.4.0",
     "katex": "^0.16.22",
     "next": "^15.3.3",
     "ramda": "^0.30.1",

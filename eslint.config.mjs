@@ -62,6 +62,12 @@ export default tseslint.config(
               message: 'Import date-fns only through src/shared/date/index.ts.',
             },
           ],
+          patterns: [
+            {
+              group: ['date-fns/*'],
+              message: 'Import date-fns only through src/shared/date/index.ts.',
+            },
+          ],
         },
       ],
     },
@@ -80,6 +86,12 @@ export default tseslint.config(
   },
   {
     files: ['src/shared/fp/index.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+  {
+    files: ['src/shared/date/index.ts'],
     rules: {
       'no-restricted-imports': 'off',
     },
