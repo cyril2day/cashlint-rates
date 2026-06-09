@@ -143,14 +143,80 @@ p {
   box-shadow: var(--shadow-soft);
 }
 
+.converter-card__header {
+  display: grid;
+  gap: 8px;
+}
+
+.converter-card__header h2 {
+  font-size: 1.5rem;
+}
+
 .converter-card__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.converter-card__note {
+.converter-card__note,
+.field__helper {
   font-size: 0.9rem;
+}
+
+.converter-card__result,
+.converter-card__message {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface-muted);
+  padding: 14px;
+}
+
+.converter-card__message--error {
+  border-color: color-mix(in oklab, #d92d20 45%, var(--clr-border));
+}
+
+.converter-card__message p,
+.converter-card__result p,
+.field__helper {
+  max-width: none;
+  line-height: 1.5;
+}
+
+.converter-card__equation {
+  color: var(--clr-text);
+  font-size: 1.15rem;
+}
+
+.converter-card__meta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.converter-card__meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--clr-border);
+  padding-top: 8px;
+}
+
+.converter-card__meta dt {
+  color: var(--clr-muted);
+  font-size: 0.86rem;
+}
+
+.converter-card__meta dd {
+  margin: 0;
+  text-align: right;
+}
+
+.converter-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .field {
@@ -175,6 +241,9 @@ p {
 }
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 48px;
   border: 0;
   border-radius: var(--radius);
@@ -182,6 +251,18 @@ p {
   color: #ffffff;
   cursor: pointer;
   font-weight: 760;
+  padding: 0 16px;
+}
+
+.button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.button--secondary {
+  border: 1px solid var(--clr-border);
+  background: var(--clr-surface);
+  color: var(--clr-text);
 }
 
 .section {

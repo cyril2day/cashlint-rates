@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ConverterCard } from '@/components/conversion/converter-card'
 
 const supportedPairs = [
   { label: 'USD to GBP', href: '/analyse?base=USD&quote=GBP' },
@@ -29,38 +30,7 @@ export default function HomePage() {
             statistical pair analysis, and transparent calculation details.
           </p>
         </div>
-        <form className="converter-card" aria-label="Currency converter preview">
-          <label className="field">
-            <span className="field__label">Amount</span>
-            <input className="field__control" inputMode="decimal" defaultValue="1000" />
-          </label>
-          <div className="converter-card__grid">
-            <label className="field">
-              <span className="field__label">From</span>
-              <select className="field__control" defaultValue="USD">
-                <option>USD</option>
-                <option>GBP</option>
-                <option>EUR</option>
-                <option>PHP</option>
-              </select>
-            </label>
-            <label className="field">
-              <span className="field__label">To</span>
-              <select className="field__control" defaultValue="GBP">
-                <option>GBP</option>
-                <option>USD</option>
-                <option>EUR</option>
-                <option>PHP</option>
-              </select>
-            </label>
-          </div>
-          <button className="button" type="button">
-            Convert
-          </button>
-          <p className="converter-card__note">
-            API integration follows after the typed route and service foundation.
-          </p>
-        </form>
+        <ConverterCard />
       </section>
 
       <section className="section" aria-labelledby="spine-status">
