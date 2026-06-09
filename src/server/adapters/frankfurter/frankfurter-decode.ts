@@ -8,6 +8,7 @@ import {
 } from '@/server/http/request-validation'
 import type { LatestRateData, LatestRateInput, ProviderError } from '@/server/ports/rate-provider'
 import {
+  booleanKey,
   failure,
   liftResult2,
   liftResult3,
@@ -38,13 +39,13 @@ const keepExpectedBase =
     ({
       false: failure(toInvalidPayload(`base ${input.base}`)),
       true: success(input.base),
-    })[String(base === input.base) as 'false' | 'true']
+    })[booleanKey(base === input.base)]
 
 const keepPositiveRate = (rate: number): Result<ProviderError, number> =>
-  ({
-    false: failure(toInvalidPayload('a positive finite quote rate')),
-    true: success(rate),
-  })[String(rate > 0) as 'false' | 'true']
+    ({
+      false: failure(toInvalidPayload('a positive finite quote rate')),
+      true: success(rate),
+  })[booleanKey(rate > 0)]
 
 const latestEnvelope = (
   base: string,

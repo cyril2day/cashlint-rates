@@ -6,7 +6,7 @@ import type {
   LatestRateInput,
   ProviderError,
 } from '@/server/ports/rate-provider'
-import { failure, type Result } from '@/shared/fp'
+import { booleanKey, failure, type Result } from '@/shared/fp'
 import { decodeFrankfurterLatestRate } from './frankfurter-decode'
 import { decodeFrankfurterHistoricalRates } from './frankfurter-historical-decode'
 import {
@@ -49,7 +49,7 @@ const statusError = (status: number): ProviderError =>
   ({
     false: frankfurterUnavailableError(status),
     true: frankfurterRateLimitError,
-  })[String(status === 429) as 'false' | 'true']
+  })[booleanKey(status === 429)]
 
 const decodeLatestResponse =
   (input: LatestRateInput) =>
@@ -60,7 +60,7 @@ const decodeLatestResponse =
         .json()
         .then((payload: unknown) => decodeFrankfurterLatestRate(input)(payload))
         .catch(() => failure<ProviderError>(frankfurterNetworkError)),
-    })[String(response.ok) as 'false' | 'true']
+    })[booleanKey(response.ok)]
 
 const decodeHistoricalResponse =
   (input: HistoricalRateInput) =>
@@ -71,7 +71,7 @@ const decodeHistoricalResponse =
         .json()
         .then((payload: unknown) => decodeFrankfurterHistoricalRates(input)(payload))
         .catch(() => failure<ProviderError>(frankfurterNetworkError)),
-    })[String(response.ok) as 'false' | 'true']
+    })[booleanKey(response.ok)]
 
 export const createFrankfurterExchangeRateProvider = (
   deps: FrankfurterAdapterDeps = defaultDeps,

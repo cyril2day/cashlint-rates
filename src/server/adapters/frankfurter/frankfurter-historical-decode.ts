@@ -12,12 +12,16 @@ import type {
   ProviderError,
 } from '@/server/ports/rate-provider'
 import {
+  allTrue,
+  anyTrue,
+  booleanKey,
+  booleanResult,
   chainResult,
-  failure,
+  fromTypeGuard,
   liftResult2,
+  liftResult4,
   mapFailure,
   mapResult,
-  success,
   traverseResult,
   type Result,
 } from '@/shared/fp'
@@ -33,29 +37,32 @@ type DecodedHistoricalRateRow = {
 const toInvalidPayload = (label: string): ProviderError =>
   frankfurterInvalidPayloadError(`Frankfurter historical-rate payload did not contain ${label}.`)
 
+const fallbackWhenBlank = (fallback: string) => (value: string): string =>
+  ({
+    false: value,
+    true: fallback,
+  })[booleanKey(value.length === 0)]
+
+const nullableFiniteRatePath = fallbackWhenBlank('a nullable finite rate')
+
 const providerDecode =
   <A>(label: string) =>
   (result: Result<unknown, A>): Result<ProviderError, A> =>
     mapFailure(() => toInvalidPayload(label))(result)
 
-const booleanResult = <A>(
-  predicate: boolean,
-  error: ProviderError,
-  value: A,
-): Result<ProviderError, A> =>
-  ({
-    false: failure(error),
-    true: success(value),
-  })[String(predicate) as 'false' | 'true']
+const isFiniteNumber = (value: unknown): value is number =>
+  allTrue([typeof value === 'number', Number.isFinite(value)])
+
+const isNullableFiniteNumber = (value: unknown): value is number | null =>
+  anyTrue([value === null, isFiniteNumber(value)])
 
 const decodeNullableFiniteNumber =
   (path: readonly string[]) =>
   (value: unknown): Result<ProviderError, number | null> =>
-    booleanResult(
-      value === null || (typeof value === 'number' && Number.isFinite(value)),
-      toInvalidPayload(path.join('.') || 'a nullable finite rate'),
-      value as number | null,
-    )
+    fromTypeGuard(
+      isNullableFiniteNumber,
+      () => toInvalidPayload(nullableFiniteRatePath(path.join('.'))),
+    )(value)
 
 const keepExpectedBase =
   (input: HistoricalRateInput) =>
@@ -87,31 +94,40 @@ const decodedHistoricalRateRow = (
   rate,
 })
 
+const decodeDateField = (
+  record: Readonly<Record<string, unknown>>,
+): Result<ProviderError, string> =>
+  providerDecode<string>('date')(
+    decodeIsoDateString(['date'])(readField('date')(record)),
+  )
+
+const decodeBaseField = (
+  record: Readonly<Record<string, unknown>>,
+): Result<ProviderError, string> =>
+  providerDecode<string>('base')(
+    decodeString(['base'])(readField('base')(record)),
+  )
+
+const decodeQuoteField = (
+  record: Readonly<Record<string, unknown>>,
+): Result<ProviderError, string> =>
+  providerDecode<string>('quote')(
+    decodeString(['quote'])(readField('quote')(record)),
+  )
+
+const decodeRateField = (
+  record: Readonly<Record<string, unknown>>,
+): Result<ProviderError, number | null> =>
+  decodeNullableFiniteNumber(['rate'])(readField('rate')(record))
+
 const decodeRowFields = (
   record: Readonly<Record<string, unknown>>,
 ): Result<ProviderError, DecodedHistoricalRateRow> =>
-  chainResult<ProviderError, string, DecodedHistoricalRateRow>((date) =>
-    chainResult<ProviderError, string, DecodedHistoricalRateRow>((base) =>
-      chainResult<ProviderError, string, DecodedHistoricalRateRow>((quote) =>
-        mapResult<number | null, DecodedHistoricalRateRow>((rate) =>
-          decodedHistoricalRateRow(date, base, quote, rate),
-        )(
-          decodeNullableFiniteNumber(['rate'])(readField('rate')(record)),
-        ),
-      )(
-        providerDecode<string>('quote')(
-          decodeString(['quote'])(readField('quote')(record)),
-        ),
-      ),
-    )(
-      providerDecode<string>('base')(
-        decodeString(['base'])(readField('base')(record)),
-      ),
-    ),
-  )(
-    providerDecode<string>('date')(
-      decodeIsoDateString(['date'])(readField('date')(record)),
-    ),
+  liftResult4(decodedHistoricalRateRow)(
+    decodeDateField(record),
+    decodeBaseField(record),
+    decodeQuoteField(record),
+    decodeRateField(record),
   )
 
 const decodeRow = (item: unknown): Result<ProviderError, DecodedHistoricalRateRow> =>
@@ -124,11 +140,10 @@ const decodeRow = (item: unknown): Result<ProviderError, DecodedHistoricalRateRo
   )
 
 const decodeUnknownArray = (payload: unknown): Result<ProviderError, ReadonlyArray<unknown>> =>
-  booleanResult(
-    Array.isArray(payload),
-    toInvalidPayload('historical rate array'),
-    payload as ReadonlyArray<unknown>,
-  )
+  fromTypeGuard(
+    (value): value is ReadonlyArray<unknown> => Array.isArray(value),
+    () => toInvalidPayload('historical rate array'),
+  )(payload)
 
 const decodeRows = (payload: unknown): Result<ProviderError, ReadonlyArray<DecodedHistoricalRateRow>> =>
   chainResult<ProviderError, ReadonlyArray<unknown>, ReadonlyArray<DecodedHistoricalRateRow>>((items) =>
