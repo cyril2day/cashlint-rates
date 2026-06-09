@@ -115,6 +115,7 @@ describe('AnalyseCard', () => {
       expect(screen.getByText('EUR/JPY')).toBeInTheDocument()
     })
     expect(screen.getByText('EUR/JPY cleaned observations')).toBeInTheDocument()
+    expect(screen.getByLabelText('Latest rate.')).toBeInTheDocument()
   })
 
   it('shows provider errors from the analysis API', async () => {

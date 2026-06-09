@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import 'katex/dist/katex.min.css'
+import 'pristine-charts/line-chart.css'
+import 'pristine-charts/chart-error.css'
 import './styles/main.scss'
 
 export const metadata: Metadata = {

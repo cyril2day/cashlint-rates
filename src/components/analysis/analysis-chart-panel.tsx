@@ -1,8 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { none } from 'pristine-charts'
+import { LineChart, formatLineChartNumber } from 'pristine-charts/line-chart'
 import type { PairChartViewModelDto } from '@/shared/dto/analysis'
-import { matchBoolean } from '@/shared/fp'
+import { fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
 
 function AnalysisObservationTable({
   chart,
@@ -30,10 +32,52 @@ function AnalysisObservationTable({
   )
 }
 
+const lineChartPoint = (point: PairChartViewModelDto['points'][number], index: number) => ({
+  x: index,
+  y: point.rate,
+})
+
+const formatChartDate =
+  (chart: PairChartViewModelDto) =>
+  (value: number): string =>
+    matchMaybe<string, string>({
+      none: () => String(value),
+      some: (date) => date,
+    })(
+      fromNullable(chart.points[Math.round(value)]?.date),
+    )
+
+function AnalysisLineChart({
+  chart,
+}: {
+  readonly chart: PairChartViewModelDto
+}) {
+  return (
+    <div className="chart-panel__visual">
+      <LineChart
+        ariaLabel={chart.summary}
+        caption={none}
+        className="chart-panel__line-chart"
+        data={chart.points.map(lineChartPoint)}
+        formatXValue={formatChartDate(chart)}
+        formatYValue={formatLineChartNumber}
+        height={240}
+        showPoints
+        width={720}
+      />
+    </div>
+  )
+}
+
 const chartContent = (chart: PairChartViewModelDto): ReactNode =>
   matchBoolean<ReactNode>({
     false: () => <p className="analysis-result__empty">No cleaned observations to chart.</p>,
-    true: () => <AnalysisObservationTable chart={chart} />,
+    true: () => (
+      <>
+        <AnalysisLineChart chart={chart} />
+        <AnalysisObservationTable chart={chart} />
+      </>
+    ),
   })(chart.points.length > 0)
 
 export function AnalysisChartPanel({

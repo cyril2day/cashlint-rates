@@ -1,6 +1,7 @@
 'use client'
 
 import type { CalculationExplanationDto } from '@/shared/dto/analysis'
+import { KatexFormula } from './katex-formula'
 
 function FormulaDisclosureItem({
   explanation,
@@ -11,7 +12,7 @@ function FormulaDisclosureItem({
     <details className="formula-disclosure">
       <summary>{explanation.title}</summary>
       <p>{explanation.plainMeaning}</p>
-      <code>{explanation.latexFormula}</code>
+      <KatexFormula accessibleText={explanation.accessibleText} latex={explanation.latexFormula} />
       <p>{explanation.accessibleText}</p>
     </details>
   )

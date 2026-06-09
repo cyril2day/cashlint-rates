@@ -1,3 +1,5 @@
+@use "pristine-styles/scss";
+
 :root {
   color-scheme: light;
   --clr-bg: #f8fafc;
@@ -348,6 +350,40 @@ p {
   margin: 0;
 }
 
+.chart-panel__visual {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.chart-panel__line-chart {
+  display: block;
+  max-width: 100%;
+}
+
+// -----------------------------------------------------------------------------
+// pristine-charts accent overrides
+// The library ships its own CSS (LineChart.css, ChartError.css) as of v0.1.4.
+// These overrides map the project's accent tokens onto the chart's colour slots.
+// -----------------------------------------------------------------------------
+
+.pristine-line-chart__path {
+  stroke: var(--clr-accent);
+}
+
+.pristine-line-chart__point-dot {
+  fill: var(--clr-accent);
+}
+
+.pristine-line-chart__point:hover .pristine-line-chart__point-dot,
+.pristine-line-chart__point:focus-visible .pristine-line-chart__point-dot,
+.pristine-line-chart__point--active .pristine-line-chart__point-dot {
+  fill: var(--clr-accent-strong);
+}
+
+.pristine-line-chart__tooltip-background {
+  fill: var(--clr-text);
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -379,12 +415,22 @@ p {
   font-weight: 760;
 }
 
-.formula-disclosure code {
+.formula-disclosure code,
+.katex-formula {
   display: block;
   overflow-x: auto;
   border-radius: var(--radius);
   background: var(--clr-surface-muted);
   padding: 10px;
+}
+
+.katex-formula--fallback {
+  display: grid;
+  gap: 8px;
+}
+
+.katex-formula--fallback span {
+  color: var(--clr-muted);
 }
 
 .link-list {
