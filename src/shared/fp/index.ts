@@ -84,6 +84,15 @@ export const mapResult =
       success: (value) => success(project(value)),
     })(result)
 
+// mapFailure :: (E1 -> E2) -> Result<E1, A> -> Result<E2, A>
+export const mapFailure =
+  <E1, E2>(project: (error: E1) => E2) =>
+  <A>(result: Result<E1, A>): Result<E2, A> =>
+    matchResult<E1, A, Result<E2, A>>({
+      failure: (error) => failure(project(error)),
+      success: (value) => success(value),
+    })(result)
+
 // chainResult :: (A -> Result<E, B>) -> Result<E, A> -> Result<E, B>
 export const chainResult =
   <E, A, B>(project: (value: A) => Result<E, B>) =>
@@ -92,6 +101,28 @@ export const chainResult =
       failure,
       success: project,
     })(result)
+
+// liftResult2 :: (A -> B -> C) -> Result<E, A> -> Result<E, B> -> Result<E, C>
+export const liftResult2 =
+  <A, B, C>(combine: (first: A, second: B) => C) =>
+  <E>(first: Result<E, A>, second: Result<E, B>): Result<E, C> =>
+    chainResult<E, A, C>((firstValue) =>
+      mapResult<B, C>((secondValue) => combine(firstValue, secondValue))(second),
+    )(first)
+
+// liftResult3 :: (A -> B -> C -> D) -> Result<E, A> -> Result<E, B> -> Result<E, C> -> Result<E, D>
+export const liftResult3 =
+  <A, B, C, D>(combine: (first: A, second: B, third: C) => D) =>
+  <E>(
+    first: Result<E, A>,
+    second: Result<E, B>,
+    third: Result<E, C>,
+  ): Result<E, D> =>
+    chainResult<E, A, D>((firstValue) =>
+      chainResult<E, B, D>((secondValue) =>
+        mapResult<C, D>((thirdValue) => combine(firstValue, secondValue, thirdValue))(third),
+      )(second),
+    )(first)
 
 // matchMaybe :: MaybeHandlers<A, B> -> Maybe<A> -> B
 export const matchMaybe =
