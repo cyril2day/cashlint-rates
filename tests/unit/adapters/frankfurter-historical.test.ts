@@ -9,7 +9,7 @@ import type {
 } from '@/server/ports/rate-provider'
 import type { Result } from '@/shared/fp'
 
-const code = (value: string): CurrencyCode => value as CurrencyCode
+const code = (value: CurrencyCode): CurrencyCode => value
 
 const historicalInput: HistoricalRateInput = {
   base: code('USD'),

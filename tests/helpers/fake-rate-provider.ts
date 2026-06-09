@@ -7,7 +7,7 @@ import type {
 } from '@/server/ports/rate-provider'
 import { failure, success } from '@/shared/fp'
 
-const code = (value: string): CurrencyCode => value as CurrencyCode
+const code = (value: CurrencyCode): CurrencyCode => value
 
 export const fakeLatestRate = (overrides: Partial<LatestRateData> = {}): LatestRateData => ({
   base: code('USD'),
