@@ -3,14 +3,54 @@ import nextPlugin from '@next/eslint-plugin-next'
 import tseslint from 'typescript-eslint'
 
 const fpRestrictedSyntax = [
-  'IfStatement',
-  'SwitchStatement',
-  'ConditionalExpression',
-  'ForStatement',
-  'ForInStatement',
-  'ForOfStatement',
-  'WhileStatement',
-  'DoWhileStatement',
+  {
+    selector: 'IfStatement',
+    message: 'Use tagged values, combinators, or small named functions instead of imperative branching.',
+  },
+  {
+    selector: 'SwitchStatement',
+    message: 'Use tagged values, combinators, or small named functions instead of imperative branching.',
+  },
+  {
+    selector: 'ConditionalExpression',
+    message: 'Use tagged values, combinators, or small named functions instead of imperative branching.',
+  },
+  {
+    selector: 'ForStatement',
+    message: 'Use map, reduce, traverse, sequence, or small recursion helpers instead of imperative loops.',
+  },
+  {
+    selector: 'ForInStatement',
+    message: 'Use typed object helpers instead of imperative loops.',
+  },
+  {
+    selector: 'ForOfStatement',
+    message: 'Use map, reduce, traverse, sequence, or small recursion helpers instead of imperative loops.',
+  },
+  {
+    selector: 'WhileStatement',
+    message: 'Use recursion or declarative helpers instead of imperative loops.',
+  },
+  {
+    selector: 'DoWhileStatement',
+    message: 'Use recursion or declarative helpers instead of imperative loops.',
+  },
+  {
+    selector: "LogicalExpression[operator='&&']",
+    message: 'Logical AND is not allowed. Extract named predicates or use allTrue/allPass.',
+  },
+  {
+    selector: "LogicalExpression[operator='||']",
+    message: 'Logical OR is not allowed. Extract named predicates or use anyTrue/anyPass.',
+  },
+  {
+    selector: "UnaryExpression[operator='!']",
+    message: 'Logical NOT is not allowed. Use isFalse, complement, or a named negated predicate.',
+  },
+  {
+    selector: "CallExpression[callee.name='chainResult'] CallExpression[callee.name='chainResult']",
+    message: 'Nested Result binding is not allowed. Use liftResultN, sequenceResult, traverseResult, or named steps.',
+  },
 ]
 
 export default tseslint.config(
@@ -45,6 +85,10 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/consistent-type-definitions': 'off',
       '@typescript-eslint/array-type': 'off',
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'never' },
+      ],
       '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unnecessary-condition': 'off',
@@ -77,16 +121,18 @@ export default tseslint.config(
     rules: {
       'no-restricted-syntax': [
         'error',
-        ...fpRestrictedSyntax.map((selector) => ({
-          selector,
-          message: 'Use tagged values, combinators, or small named functions instead of imperative branching.',
-        })),
+        ...fpRestrictedSyntax,
       ],
     },
   },
   {
     files: ['src/shared/fp/index.ts'],
     rules: {
+      '@typescript-eslint/consistent-type-assertions': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      'no-restricted-syntax': 'off',
       'no-restricted-imports': 'off',
     },
   },
