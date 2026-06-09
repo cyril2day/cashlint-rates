@@ -3,5 +3,9 @@ import { createRequestId, toJsonResponse } from '@/server/http/api-envelope'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = (): Response =>
-  toJsonResponse(createRequestId(), (error: never) => error)(getCurrencyCatalogue())
+const createCurrencyCatalogueGetHandler =
+  (): (() => Promise<Response>) =>
+  async (): Promise<Response> =>
+    toJsonResponse(createRequestId(), (error: never) => error)(await getCurrencyCatalogue())
+
+export const GET = createCurrencyCatalogueGetHandler()

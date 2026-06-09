@@ -66,8 +66,10 @@ export type ProviderError =
 
 export type ProviderLatestRateResult = AsyncResult<ProviderError, LatestRateData>
 export type ProviderHistoricalRateResult = AsyncResult<ProviderError, HistoricalRateData>
+export type ProviderCurrencyCatalogueAsyncResult = AsyncResult<ProviderError, ProviderCurrencyCatalogueResult>
 
 export type ExchangeRateProvider = {
+  readonly getCurrencyCatalogue: () => ProviderCurrencyCatalogueAsyncResult
   readonly getLatestRate: (input: LatestRateInput) => ProviderLatestRateResult
   readonly getHistoricalRates: (input: HistoricalRateInput) => ProviderHistoricalRateResult
 }
