@@ -1,4 +1,5 @@
 import type { CurrencyCode } from '@/server/domain/currency/currency'
+import type { ISODateStringDto } from '@/shared/dto/api'
 import type { AsyncResult } from '@/shared/fp'
 
 export type LatestRateInput = {
@@ -11,6 +12,27 @@ export type LatestRateData = {
   readonly quote: CurrencyCode
   readonly rate: number
   readonly effectiveDate: string
+  readonly sourcePair: string
+}
+
+export type HistoricalRateInput = {
+  readonly base: CurrencyCode
+  readonly quote: CurrencyCode
+  readonly startDate: ISODateStringDto
+  readonly endDate: ISODateStringDto
+}
+
+export type HistoricalRateObservation = {
+  readonly date: ISODateStringDto
+  readonly rate: number | null
+}
+
+export type HistoricalRateData = {
+  readonly base: CurrencyCode
+  readonly quote: CurrencyCode
+  readonly startDate: ISODateStringDto
+  readonly endDate: ISODateStringDto
+  readonly observations: ReadonlyArray<HistoricalRateObservation>
   readonly sourcePair: string
 }
 
@@ -43,7 +65,9 @@ export type ProviderError =
     }
 
 export type ProviderLatestRateResult = AsyncResult<ProviderError, LatestRateData>
+export type ProviderHistoricalRateResult = AsyncResult<ProviderError, HistoricalRateData>
 
 export type ExchangeRateProvider = {
   readonly getLatestRate: (input: LatestRateInput) => ProviderLatestRateResult
+  readonly getHistoricalRates: (input: HistoricalRateInput) => ProviderHistoricalRateResult
 }

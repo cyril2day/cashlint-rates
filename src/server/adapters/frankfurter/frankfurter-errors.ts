@@ -8,7 +8,7 @@ export const frankfurterNetworkError: ProviderError = {
 export const frankfurterUnavailableError = (status: number): ProviderError => ({
   tag: 'unavailable',
   status,
-  message: 'Frankfurter did not return a usable latest-rate response.',
+  message: 'Frankfurter did not return a usable rate response.',
 })
 
 export const frankfurterRateLimitError: ProviderError = {
