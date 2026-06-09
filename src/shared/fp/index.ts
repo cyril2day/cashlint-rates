@@ -50,24 +50,29 @@ type ResultHandlers<E, A, B> = {
   readonly success: (value: A) => B
 }
 
-type FailureResult<E> = { readonly tag: 'failure', readonly error: E }
-type SuccessResult<A> = { readonly tag: 'success', readonly value: A }
-
 type MaybeHandlers<A, B> = {
   readonly none: () => B
   readonly some: (value: A) => B
 }
 
-type SomeMaybe<A> = { readonly tag: 'some', readonly value: A }
+type TagHandlers<U extends { readonly tag: string }, A> = {
+  readonly [K in U['tag']]: (value: Extract<U, { readonly tag: K }>) => A
+}
+
+type DtoTagHandlers<U extends { readonly _tag: string }, A> = {
+  readonly [K in U['_tag']]: (value: Extract<U, { readonly _tag: K }>) => A
+}
 
 // matchResult :: ResultHandlers<E, A, B> -> Result<E, A> -> B
 export const matchResult =
   <E, A, B>(handlers: ResultHandlers<E, A, B>) =>
-  (result: Result<E, A>): B =>
-    ({
-      failure: () => handlers.failure((result as FailureResult<E>).error),
-      success: () => handlers.success((result as SuccessResult<A>).value),
-    })[result.tag]()
+  (result: Result<E, A>): B => {
+    if (result.tag === 'failure') {
+      return handlers.failure(result.error)
+    }
+
+    return handlers.success(result.value)
+  }
 
 // foldResult :: (E -> B) -> (A -> B) -> Result<E, A> -> B
 export const foldResult =
@@ -102,6 +107,65 @@ export const chainResult =
       success: project,
     })(result)
 
+// booleanResult :: boolean -> E -> A -> Result<E, A>
+export const booleanResult = <E, A>(
+  predicate: boolean,
+  error: E,
+  value: A,
+): Result<E, A> =>
+  ({
+    false: failure(error),
+    true: success(value),
+  })[booleanKey(predicate)]
+
+// lazyBooleanResult :: boolean -> (() -> E) -> (() -> A) -> Result<E, A>
+export const lazyBooleanResult = <E, A>(
+  predicate: boolean,
+  onFalse: () => E,
+  onTrue: () => A,
+): Result<E, A> =>
+  ({
+    false: () => failure(onFalse()),
+    true: () => success(onTrue()),
+  })[booleanKey(predicate)]()
+
+export type BooleanKey = 'false' | 'true'
+
+export const booleanKey = (value: boolean): BooleanKey => {
+  if (value) {
+    return 'true'
+  }
+
+  return 'false'
+}
+
+export const matchBoolean =
+  <A>(handlers: Readonly<Record<BooleanKey, () => A>>) =>
+  (value: boolean): A =>
+    handlers[booleanKey(value)]()
+
+export const matchTag =
+  <U extends { readonly tag: string }, A>(handlers: TagHandlers<U, A>) =>
+  (value: U): A =>
+    handlers[value.tag as U['tag']](value as never)
+
+export const matchDtoTag =
+  <U extends { readonly _tag: string }, A>(handlers: DtoTagHandlers<U, A>) =>
+  (value: U): A =>
+    handlers[value._tag as U['_tag']](value as never)
+
+export const isFalse = (value: boolean): boolean =>
+  matchBoolean({
+    false: () => true,
+    true: () => false,
+  })(value)
+
+export const allTrue = (values: ReadonlyArray<boolean>): boolean =>
+  values.every((value) => value)
+
+export const anyTrue = (values: ReadonlyArray<boolean>): boolean =>
+  values.some((value) => value)
+
 // liftResult2 :: (A -> B -> C) -> Result<E, A> -> Result<E, B> -> Result<E, C>
 export const liftResult2 =
   <A, B, C>(combine: (first: A, second: B) => C) =>
@@ -124,14 +188,43 @@ export const liftResult3 =
       )(second),
     )(first)
 
+// liftResult4 :: (A -> B -> C -> D -> X) -> Result<E, A> -> Result<E, B> -> Result<E, C> -> Result<E, D> -> Result<E, X>
+export const liftResult4 =
+  <A, B, C, D, X>(combine: (first: A, second: B, third: C, fourth: D) => X) =>
+  <E>(
+    first: Result<E, A>,
+    second: Result<E, B>,
+    third: Result<E, C>,
+    fourth: Result<E, D>,
+  ): Result<E, X> =>
+    chainResult<E, A, X>((firstValue) =>
+      chainResult<E, B, X>((secondValue) =>
+        chainResult<E, C, X>((thirdValue) =>
+          mapResult<D, X>((fourthValue) =>
+            combine(firstValue, secondValue, thirdValue, fourthValue))(fourth),
+        )(third),
+      )(second),
+    )(first)
+
 // matchMaybe :: MaybeHandlers<A, B> -> Maybe<A> -> B
 export const matchMaybe =
   <A, B>(handlers: MaybeHandlers<A, B>) =>
-  (maybe: Maybe<A>): B =>
-    ({
-      none: handlers.none,
-      some: () => handlers.some((maybe as SomeMaybe<A>).value),
-    })[maybe.tag]()
+  (maybe: Maybe<A>): B => {
+    if (maybe.tag === 'none') {
+      return handlers.none()
+    }
+
+    return handlers.some(maybe.value)
+  }
+
+// fromNullable :: (A | null | undefined) -> Maybe<NonNullable<A>>
+export const fromNullable = <A>(value: A | null | undefined): Maybe<NonNullable<A>> => {
+  if (value === null || value === undefined) {
+    return none()
+  }
+
+  return some(value)
+}
 
 // foldMaybe :: B -> (A -> B) -> Maybe<A> -> B
 export const foldMaybe =
@@ -164,7 +257,18 @@ export const fromPredicate =
     ({
       false: failure(error),
       true: success(value),
-    })[String(predicate(value)) as 'false' | 'true']
+    })[booleanKey(predicate(value))]
+
+// fromTypeGuard :: (unknown -> value is A) -> (unknown -> E) -> unknown -> Result<E, A>
+export const fromTypeGuard =
+  <E, A>(predicate: (value: unknown) => value is A, error: (value: unknown) => E) =>
+  (value: unknown): Result<E, A> => {
+    if (predicate(value)) {
+      return success(value)
+    }
+
+    return failure(error(value))
+  }
 
 // sequenceResult :: ReadonlyArray<Result<E, A>> -> Result<E, ReadonlyArray<A>>
 export const sequenceResult = <E, A>(
