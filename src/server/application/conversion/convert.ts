@@ -25,6 +25,7 @@ import {
   liftResult3,
   mapFailure,
   mapResult,
+  matchBoolean,
   matchResult,
   success,
   type AsyncResult,
@@ -44,7 +45,7 @@ const attribution = {
   label: 'Exchange-rate data powered by Frankfurter.',
   sourceName: 'Frankfurter',
   sourceUrl: 'https://www.frankfurter.app/',
-} as const
+}
 
 const currencyName = (code: CurrencyCode): string =>
   staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.name ?? code
@@ -71,7 +72,7 @@ const parseInputCurrency = (
   )
 
 const providerErrorToConversionError = (error: ProviderError): ConversionError =>
-  ({
+  ((category: Readonly<Record<ProviderError['tag'], ConversionError>>) => category)({
     'invalid-payload': {
       tag: 'provider-payload-invalid',
       message: 'The latest reference-rate payload could not be validated.',
@@ -88,7 +89,7 @@ const providerErrorToConversionError = (error: ProviderError): ConversionError =
       tag: 'provider-unavailable',
       message: 'We could not load the latest reference rate just now. Please try again.',
     },
-  })[error.tag] as ConversionError
+  })[error.tag]
 
 const sameCurrencyResult = (amount: MoneyInput, pair: CurrencyPair): ConversionResult => ({
   amount,
@@ -106,7 +107,7 @@ const providerResult =
   (pair: CurrencyPair): AsyncResult<ConversionError, ConversionResult> =>
     deps.exchangeRateProvider
       .getLatestRate(pair)
-      .then(mapResult((rateData) => ({
+      .then(mapResult((rateData): ConversionResult => ({
         amount,
         base: pair.base,
         quote: pair.quote,
@@ -114,17 +115,17 @@ const providerResult =
         convertedAmount: calculateConvertedAmount(amount, rateData.rate),
         effectiveDate: rateData.effectiveDate,
         sourcePair: rateData.sourcePair,
-        mode: 'provider' as const,
+        mode: 'provider',
       })))
       .then(mapFailure(providerErrorToConversionError))
 
 const convertValidated =
   (deps: ConversionDeps, amount: MoneyInput) =>
   (pair: CurrencyPair): AsyncResult<ConversionError, ConversionResult> =>
-    ({
+    matchBoolean<AsyncResult<ConversionError, ConversionResult>>({
       false: () => providerResult(deps, amount)(pair),
       true: () => Promise.resolve(success(sameCurrencyResult(amount, pair))),
-    })[String(isSameCurrencyPair(pair)) as 'false' | 'true']()
+    })(isSameCurrencyPair(pair))
 
 const validatedConversionInput = (
   amount: MoneyInput,
@@ -181,25 +182,25 @@ const availableMetric = (
 })
 
 const maybeDate = (date: string | null): ConversionViewModelDto['result']['effectiveDate'] =>
-  ({
-    false: { _tag: 'Nothing' },
-    true: { _tag: 'Just', value: String(date) },
-  })[String(date !== null) as 'false' | 'true'] as ConversionViewModelDto['result']['effectiveDate']
+  matchBoolean<ConversionViewModelDto['result']['effectiveDate']>({
+    false: () => ({ _tag: 'Nothing' }),
+    true: () => ({ _tag: 'Just', value: String(date) }),
+  })(date !== null)
 
 const rateDerivation = (result: ConversionResult): RateDerivationDto =>
-  ({
+  ((derivations: Readonly<Record<ConversionResult['mode'], RateDerivationDto>>) => derivations)({
     provider: {
-      _tag: 'DirectRate' as const,
+      _tag: 'DirectRate',
       requestedPair: `${result.base}/${result.quote}`,
       sourcePair: result.sourcePair,
       displayedPair: `${result.base}/${result.quote}`,
     },
     'same-currency': {
-      _tag: 'SameCurrencyRate' as const,
+      _tag: 'SameCurrencyRate',
       requestedPair: `${result.base}/${result.quote}`,
       sourcePair: result.sourcePair,
       displayedPair: `${result.base}/${result.quote}`,
-      formulaKey: 'same-currency-rate' as const,
+      formulaKey: 'same-currency-rate',
       displayNote: 'Same-currency conversion is always 1:1.',
     },
   })[result.mode]

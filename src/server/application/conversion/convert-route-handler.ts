@@ -14,6 +14,7 @@ import {
   mapFailure,
   mapResult,
   matchResult,
+  matchTag,
   success,
   type AsyncResult,
   type Result,
@@ -104,32 +105,35 @@ const apiError = (
   details: [],
 })
 
-type ErrorMapper<T extends ConversionError['tag']> = (
-  error: Extract<ConversionError, { readonly tag: T }>,
-) => ApiErrorDto
-
-const errorMappers: { readonly [T in ConversionError['tag']]: ErrorMapper<T> } = {
-  'invalid-amount': (error) =>
-    apiError('INVALID_AMOUNT', 'validation', error.message, [
-      { field: error.field, code: 'INVALID_AMOUNT', message: error.message },
-    ]),
-  'invalid-json': (error) => apiError('INVALID_JSON', 'validation', error.message, []),
-  'invalid-request-shape': (error) =>
-    apiError('INVALID_REQUEST_SHAPE', 'validation', error.message, [
-      { field: error.field, code: 'INVALID_REQUEST_SHAPE', message: error.message },
-    ]),
-  'provider-payload-invalid': (error) =>
-    apiError('PROVIDER_PAYLOAD_INVALID', 'provider', error.message, []),
-  'provider-unavailable': (error) =>
-    apiError('PROVIDER_UNAVAILABLE', 'provider', error.message, []),
-  'unsupported-currency': (error) =>
-    apiError('UNSUPPORTED_CURRENCY', 'currency', error.message, [
-      { field: error.field, code: 'UNSUPPORTED_CURRENCY', message: error.message },
-    ]),
-}
-
 const mapConversionErrorToApiError = (error: ConversionError): ApiErrorDto =>
-  errorMappers[error.tag](error as never)
+  matchTag<ConversionError, ApiErrorDto>({
+    'invalid-amount': (invalidAmount) =>
+      apiError('INVALID_AMOUNT', 'validation', invalidAmount.message, [
+        { field: invalidAmount.field, code: 'INVALID_AMOUNT', message: invalidAmount.message },
+      ]),
+    'invalid-json': (invalidJsonError) =>
+      apiError('INVALID_JSON', 'validation', invalidJsonError.message, []),
+    'invalid-request-shape': (invalidRequestShape) =>
+      apiError('INVALID_REQUEST_SHAPE', 'validation', invalidRequestShape.message, [
+        {
+          field: invalidRequestShape.field,
+          code: 'INVALID_REQUEST_SHAPE',
+          message: invalidRequestShape.message,
+        },
+      ]),
+    'provider-payload-invalid': (providerPayloadInvalid) =>
+      apiError('PROVIDER_PAYLOAD_INVALID', 'provider', providerPayloadInvalid.message, []),
+    'provider-unavailable': (providerUnavailable) =>
+      apiError('PROVIDER_UNAVAILABLE', 'provider', providerUnavailable.message, []),
+    'unsupported-currency': (unsupportedCurrencyError) =>
+      apiError('UNSUPPORTED_CURRENCY', 'currency', unsupportedCurrencyError.message, [
+        {
+          field: unsupportedCurrencyError.field,
+          code: 'UNSUPPORTED_CURRENCY',
+          message: unsupportedCurrencyError.message,
+        },
+      ]),
+  })(error)
 
 const decodeRequestBody = async (request: Request): AsyncResult<ConversionError, ConvertRequestDto> =>
   matchResult<ConversionError, unknown, AsyncResult<ConversionError, ConvertRequestDto>>({
