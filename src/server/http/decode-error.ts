@@ -1,4 +1,5 @@
 import type { ApiErrorDto } from '@/shared/dto/api'
+import { booleanKey } from '@/shared/fp'
 
 export type DecodeError = {
   readonly tag: 'decode-error'
@@ -11,6 +12,16 @@ export type DecodeError = {
 export const describeUnknown = (value: unknown): string =>
   Object.prototype.toString.call(value).replace('[object ', '').replace(']', '').toLowerCase()
 
+const fallbackWhenBlank = (fallback: string) => (value: string): string =>
+  ({
+    false: value,
+    true: fallback,
+  })[booleanKey(value.length === 0)]
+
+const decodePathLabel = fallbackWhenBlank('value')
+
+const decodeFieldLabel = fallbackWhenBlank('body')
+
 export const decodeError = (
   path: readonly string[],
   expected: string,
@@ -20,7 +31,7 @@ export const decodeError = (
   path,
   expected,
   actual: describeUnknown(actual),
-  message: `${path.join('.') || 'value'} must be ${expected}.`,
+  message: `${decodePathLabel(path.join('.'))} must be ${expected}.`,
 })
 
 export const decodeErrorToApiError = (error: DecodeError): ApiErrorDto => ({
@@ -30,7 +41,7 @@ export const decodeErrorToApiError = (error: DecodeError): ApiErrorDto => ({
   recoverable: true,
   fieldErrors: [
     {
-      field: error.path.join('.') || 'body',
+      field: decodeFieldLabel(error.path.join('.')),
       code: error.expected,
       message: error.message,
     },

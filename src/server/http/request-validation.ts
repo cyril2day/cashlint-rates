@@ -1,55 +1,65 @@
 import {
   chainResult,
-  failure,
+  allTrue,
+  booleanResult,
+  fromTypeGuard,
+  isFalse,
   mapResult,
   sequenceResult,
-  success,
   type Result,
 } from '@/shared/fp'
 import { decodeError, type DecodeError } from './decode-error'
 
 export type JsonRecord = Readonly<Record<string, unknown>>
 
-const booleanResult = <A, E>(
+const validatedValue = <A, E>(
   predicate: boolean,
   value: A,
   error: E,
 ): Result<E, A> =>
-  ({
-    false: failure(error),
-    true: success(value),
-  })[String(predicate) as 'false' | 'true']
+  booleanResult(predicate, error, value)
+
+const isFiniteNumber = (value: unknown): value is number =>
+  allTrue([typeof value === 'number', Number.isFinite(value)])
+
+const isString = (value: unknown): value is string => typeof value === 'string'
+
+const isReadonlyUnknownArray = (value: unknown): value is ReadonlyArray<unknown> =>
+  Array.isArray(value)
+
+const isJsonRecord = (value: unknown): value is JsonRecord =>
+  allTrue([
+    typeof value === 'object',
+    value !== null,
+    isFalse(Array.isArray(value)),
+  ])
 
 // decodeString :: readonly string[] -> unknown -> Result<DecodeError, string>
 export const decodeString =
   (path: readonly string[]) =>
   (value: unknown): Result<DecodeError, string> =>
-    booleanResult(typeof value === 'string', value as string, decodeError(path, 'a string', value))
+    fromTypeGuard(isString, () => decodeError(path, 'a string', value))(value)
 
 // decodeNonEmptyString :: readonly string[] -> unknown -> Result<DecodeError, string>
 export const decodeNonEmptyString =
   (path: readonly string[]) =>
   (value: unknown): Result<DecodeError, string> =>
     chainResult<DecodeError, string, string>((text) =>
-      booleanResult(text.trim().length > 0, text, decodeError(path, 'a non-empty string', value)),
+      validatedValue(text.trim().length > 0, text, decodeError(path, 'a non-empty string', value)),
     )(decodeString(path)(value))
 
 // decodeFiniteNumber :: readonly string[] -> unknown -> Result<DecodeError, number>
 export const decodeFiniteNumber =
   (path: readonly string[]) =>
   (value: unknown): Result<DecodeError, number> =>
-    booleanResult(
-      typeof value === 'number' && Number.isFinite(value),
-      value as number,
-      decodeError(path, 'a finite number', value),
-    )
+    fromTypeGuard(isFiniteNumber, () => decodeError(path, 'a finite number', value))(value)
 
 // decodePositiveFiniteNumber :: readonly string[] -> unknown -> Result<DecodeError, number>
 export const decodePositiveFiniteNumber =
   (path: readonly string[]) =>
   (value: unknown): Result<DecodeError, number> =>
     chainResult<DecodeError, number, number>((amount) =>
-      booleanResult(amount > 0, amount, decodeError(path, 'a positive finite number', value)),
+      validatedValue(amount > 0, amount, decodeError(path, 'a positive finite number', value)),
     )(decodeFiniteNumber(path)(value))
 
 // decodeIsoDateString :: readonly string[] -> unknown -> Result<DecodeError, string>
@@ -57,7 +67,7 @@ export const decodeIsoDateString =
   (path: readonly string[]) =>
   (value: unknown): Result<DecodeError, string> =>
     chainResult<DecodeError, string, string>((text) =>
-      booleanResult(/^\d{4}-\d{2}-\d{2}$/.test(text), text, decodeError(path, 'YYYY-MM-DD', value)),
+      validatedValue(/^\d{4}-\d{2}-\d{2}$/.test(text), text, decodeError(path, 'YYYY-MM-DD', value)),
     )(decodeString(path)(value))
 
 // decodeCurrencyCodeCandidate :: readonly string[] -> unknown -> Result<DecodeError, string>
@@ -66,7 +76,7 @@ export const decodeCurrencyCodeCandidate =
   (value: unknown): Result<DecodeError, string> =>
     mapResult((text: string) => text.toUpperCase())(
       chainResult<DecodeError, string, string>((text) =>
-        booleanResult(/^[A-Za-z]{3}$/.test(text), text, decodeError(path, 'a 3-letter currency code', value)),
+        validatedValue(/^[A-Za-z]{3}$/.test(text), text, decodeError(path, 'a 3-letter currency code', value)),
       )(decodeString(path)(value)),
     )
 
@@ -74,11 +84,7 @@ export const decodeCurrencyCodeCandidate =
 export const decodeRecord =
   (path: readonly string[]) =>
   (value: unknown): Result<DecodeError, JsonRecord> =>
-    booleanResult(
-      typeof value === 'object' && value !== null && !Array.isArray(value),
-      value as JsonRecord,
-      decodeError(path, 'an object', value),
-    )
+    fromTypeGuard(isJsonRecord, () => decodeError(path, 'an object', value))(value)
 
 // decodeReadonlyArray :: readonly string[] -> (unknown -> Result<DecodeError, A>) -> unknown -> Result<DecodeError, readonly A[]>
 export const decodeReadonlyArray =
@@ -87,11 +93,7 @@ export const decodeReadonlyArray =
     chainResult<DecodeError, ReadonlyArray<unknown>, ReadonlyArray<A>>((items) =>
       sequenceResult(items.map(decodeItem)),
     )(
-      booleanResult(
-        Array.isArray(value),
-        value as ReadonlyArray<unknown>,
-        decodeError(path, 'an array', value),
-      ),
+      fromTypeGuard(isReadonlyUnknownArray, () => decodeError(path, 'an array', value))(value),
     )
 
 export const readField =
