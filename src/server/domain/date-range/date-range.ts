@@ -1,8 +1,12 @@
 import {
+  booleanResult,
   chainResult,
   failure,
+  fromNullable,
   liftResult2,
   mapResult,
+  matchMaybe,
+  matchTag,
   success,
   type Result,
 } from '@/shared/fp'
@@ -83,12 +87,6 @@ const presetSources: Readonly<Record<DateRangePreset, DateRangeRequestSource>> =
   '1Y': 'preset-1y',
 }
 
-const booleanResult = <E, A>(predicate: boolean, error: E, value: A): Result<E, A> =>
-  ({
-    false: failure(error),
-    true: success(value),
-  })[String(predicate) as 'false' | 'true']
-
 const unsupportedPreset = (candidate: string): DateRangeError => ({
   tag: 'unsupported-preset',
   field: 'preset',
@@ -133,12 +131,12 @@ const parseIsoDate =
 
 export const parseDateRangePreset = (candidate: string): Result<DateRangeError, DateRangePreset> => {
   const normalised = candidate.toUpperCase()
+  const preset = dateRangePresets.find((value) => value === normalised)
 
-  return booleanResult(
-    dateRangePresets.includes(normalised as DateRangePreset),
-    unsupportedPreset(normalised),
-    normalised as DateRangePreset,
-  )
+  return matchMaybe<DateRangePreset, Result<DateRangeError, DateRangePreset>>({
+    none: () => failure(unsupportedPreset(normalised)),
+    some: success,
+  })(fromNullable(preset))
 }
 
 export const presetDateRange = (preset: DateRangePreset): DateRangeRequest => ({
@@ -230,16 +228,14 @@ const resolveCustomDateRange = (
     ),
   )
 
-type PresetDateRangeRequest = Extract<DateRangeRequest, { readonly tag: 'preset' }>
-
 const resolveValidDateRange = (
   request: DateRangeRequest,
   today: ISODateStringDto,
 ): Result<DateRangeError, ResolvedDateRange> =>
-  ({
-    custom: () => resolveCustomDateRange(request as CustomDateRangeRequest, today),
-    preset: () => success(resolvePresetDateRange((request as PresetDateRangeRequest).preset, today)),
-  })[request.tag]()
+  matchTag<DateRangeRequest, Result<DateRangeError, ResolvedDateRange>>({
+    custom: (customRequest) => resolveCustomDateRange(customRequest, today),
+    preset: (presetRequest) => success(resolvePresetDateRange(presetRequest.preset, today)),
+  })(request)
 
 export const resolveDateRange = (
   request: DateRangeRequest,

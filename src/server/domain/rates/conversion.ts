@@ -1,7 +1,7 @@
-import { failure, success, type Result } from '@/shared/fp'
+import { allTrue, booleanResult, success, type Result } from '@/shared/fp'
 import type { CurrencyCode } from '@/server/domain/currency/currency'
 
-export type MoneyInput = number & { readonly MoneyInput: unique symbol }
+export type MoneyInput = number
 
 export type CurrencyPair = {
   readonly base: CurrencyCode
@@ -51,7 +51,7 @@ export type ConversionError =
       readonly message: string
     }
 
-const makeMoney = (amount: number): MoneyInput => amount as MoneyInput
+const makeMoney = (amount: number): MoneyInput => amount
 
 const invalidAmount: ConversionError = {
   tag: 'invalid-amount',
@@ -59,14 +59,8 @@ const invalidAmount: ConversionError = {
   message: 'Enter an amount greater than 0.',
 }
 
-const booleanResult = <E, A>(predicate: boolean, error: E, value: A): Result<E, A> =>
-  ({
-    false: failure(error),
-    true: success(value),
-  })[String(predicate) as 'false' | 'true']
-
 export const makeMoneyInput = (amount: number): Result<ConversionError, MoneyInput> =>
-  booleanResult(Number.isFinite(amount) && amount > 0, invalidAmount, makeMoney(amount))
+  booleanResult(allTrue([Number.isFinite(amount), amount > 0]), invalidAmount, makeMoney(amount))
 
 export const makeCurrencyPair = (base: CurrencyCode, quote: CurrencyCode): Result<ConversionError, CurrencyPair> =>
   success({ base, quote })

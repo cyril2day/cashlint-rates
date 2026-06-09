@@ -1,6 +1,6 @@
-import { failure, success, type Result } from '@/shared/fp'
+import { failure, fromNullable, matchMaybe, success, type Result } from '@/shared/fp'
 
-export type CurrencyCode = string & { readonly CurrencyCode: unique symbol }
+export type CurrencyCode = 'AUD' | 'CAD' | 'CHF' | 'CNY' | 'EUR' | 'GBP' | 'JPY' | 'PHP' | 'USD'
 
 export type CurrencyValidationError = {
   readonly tag: 'currency-validation-error'
@@ -18,21 +18,19 @@ export type SupportedCurrencyCatalogue = {
   readonly currencies: ReadonlyArray<SupportedCurrency>
 }
 
-const makeCurrencyCode = (code: string): CurrencyCode => code as CurrencyCode
-
-const supportedCodes = ['AUD', 'CAD', 'CHF', 'CNY', 'EUR', 'GBP', 'JPY', 'PHP', 'USD'] as const
+const supportedCodes: ReadonlyArray<CurrencyCode> = ['AUD', 'CAD', 'CHF', 'CNY', 'EUR', 'GBP', 'JPY', 'PHP', 'USD']
 
 export const staticSafeCurrencyCatalogue: SupportedCurrencyCatalogue = {
   currencies: [
-    { code: makeCurrencyCode('AUD'), name: 'Australian dollar', symbol: 'A$' },
-    { code: makeCurrencyCode('CAD'), name: 'Canadian dollar', symbol: 'C$' },
-    { code: makeCurrencyCode('CHF'), name: 'Swiss franc', symbol: 'CHF' },
-    { code: makeCurrencyCode('CNY'), name: 'Chinese yuan', symbol: 'CN¥' },
-    { code: makeCurrencyCode('EUR'), name: 'Euro', symbol: '€' },
-    { code: makeCurrencyCode('GBP'), name: 'British pound', symbol: '£' },
-    { code: makeCurrencyCode('JPY'), name: 'Japanese yen', symbol: '¥' },
-    { code: makeCurrencyCode('PHP'), name: 'Philippine peso', symbol: '₱' },
-    { code: makeCurrencyCode('USD'), name: 'US dollar', symbol: '$' },
+    { code: 'AUD', name: 'Australian dollar', symbol: 'A$' },
+    { code: 'CAD', name: 'Canadian dollar', symbol: 'C$' },
+    { code: 'CHF', name: 'Swiss franc', symbol: 'CHF' },
+    { code: 'CNY', name: 'Chinese yuan', symbol: 'CN¥' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British pound', symbol: '£' },
+    { code: 'JPY', name: 'Japanese yen', symbol: '¥' },
+    { code: 'PHP', name: 'Philippine peso', symbol: '₱' },
+    { code: 'USD', name: 'US dollar', symbol: '$' },
   ],
 }
 
@@ -47,12 +45,12 @@ export const parseCurrencyCode =
   (catalogue: SupportedCurrencyCatalogue) =>
   (candidate: string): Result<CurrencyValidationError, CurrencyCode> => {
     const normalised = candidate.toUpperCase()
-    const isSupported = catalogue.currencies.some((currency) => currency.code === normalised)
+    const supportedCurrency = catalogue.currencies.find((currency) => currency.code === normalised)
 
-    return ({
-      false: failure(unsupportedCurrency(normalised)),
-      true: success(makeCurrencyCode(normalised)),
-    })[String(isSupported) as 'false' | 'true']
+    return matchMaybe<SupportedCurrency, Result<CurrencyValidationError, CurrencyCode>>({
+      none: () => failure(unsupportedCurrency(normalised)),
+      some: (currency) => success(currency.code),
+    })(fromNullable(supportedCurrency))
   }
 
 export const defaultSupportedCurrencyCodes: ReadonlyArray<string> = supportedCodes
