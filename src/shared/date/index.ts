@@ -39,3 +39,6 @@ export const isIsoDateOnOrBefore = (
   right: ISODateStringDto,
 ): boolean =>
   compareAsc(toDate(left), toDate(right)) <= 0
+
+export const currentIsoDate = (): ISODateStringDto =>
+  normaliseIsoDate(new Date())

@@ -1,0 +1,662 @@
+import {
+  parseCurrencyCode,
+  staticSafeCurrencyCatalogue,
+  type CurrencyCode,
+  type SupportedCurrency,
+} from '@/server/domain/currency/currency'
+import {
+  customDateRange,
+  friendlyPreviousToleranceDays,
+  parseDateRangePreset,
+  presetDateRange,
+  resolveDateRange,
+  type DateRangeError,
+  type DateRangeRequest,
+  type ResolvedDateRange,
+} from '@/server/domain/date-range/date-range'
+import {
+  analysisFormulaEntries,
+  formulaSummariesForMetrics,
+  type AnalysisMetricKey,
+  type FormulaRegistryEntry,
+} from '@/server/domain/formulas/formula-registry'
+import { isSameCurrencyPair, type CurrencyPair } from '@/server/domain/rates/conversion'
+import {
+  deriveRateSeries,
+  type ApplicableRateSeries,
+  type DerivedRateSeries,
+  type RateDerivationError,
+  type RateObservation,
+} from '@/server/domain/rates/rate-derivation'
+import {
+  calculateRateLevelStats,
+  zScoreUnavailableReason,
+  type RateLevelStats,
+} from '@/server/domain/statistics/descriptive-statistics'
+import {
+  calculateMovementStats,
+  type MovementStats,
+} from '@/server/domain/statistics/movement-statistics'
+import type { ExchangeRateProvider, HistoricalRateData, ProviderError } from '@/server/ports/rate-provider'
+import { addCalendarDays, isIsoDateBefore } from '@/shared/date'
+import type {
+  AnalysisDateRangeDto,
+  AnalysisMetricAvailabilityDto,
+  AnalysisMetricUnitDto,
+  AnalysisMetricValueDto,
+  AnalyseDateRangeRequestDto,
+  AnalyseRequestDto,
+  CalculationExplanationDto,
+  DataQualityDto,
+  PairAnalysisMetricsDto,
+  PairAnalysisViewModelDto,
+  PairChartPointDto,
+} from '@/shared/dto/analysis'
+import type { ISODateStringDto, MaybeDto } from '@/shared/dto/api'
+import {
+  booleanKey,
+  failure,
+  fromNullable,
+  liftResult3,
+  mapFailure,
+  mapMaybe,
+  mapResult,
+  matchBoolean,
+  matchDtoTag,
+  matchMaybe,
+  matchResult,
+  matchTag,
+  success,
+  type AsyncResult,
+  type Maybe,
+  type Result,
+} from '@/shared/fp'
+
+type AnalysisDeps = {
+  readonly exchangeRateProvider: ExchangeRateProvider
+  readonly today: ISODateStringDto
+}
+
+type ValidatedAnalysisInput = {
+  readonly pair: CurrencyPair
+  readonly requestedDateRange: ResolvedDateRange
+  readonly effectiveDateRange: ResolvedDateRange
+}
+
+export type AnalysisError =
+  | {
+      readonly tag: 'invalid-json'
+      readonly message: string
+    }
+  | {
+      readonly tag: 'invalid-request-shape'
+      readonly field: string
+      readonly message: string
+    }
+  | {
+      readonly tag: 'unsupported-currency'
+      readonly field: 'base' | 'quote'
+      readonly candidate: string
+      readonly message: string
+    }
+  | {
+      readonly tag: 'date-range-error'
+      readonly error: DateRangeError
+    }
+  | {
+      readonly tag: 'provider-unavailable'
+      readonly message: string
+    }
+  | {
+      readonly tag: 'provider-payload-invalid'
+      readonly message: string
+    }
+  | {
+      readonly tag: 'rate-derivation-unavailable'
+      readonly message: string
+    }
+
+const attribution = {
+  label: 'Exchange-rate data powered by Frankfurter.',
+  sourceName: 'Frankfurter',
+  sourceUrl: 'https://www.frankfurter.app/',
+}
+
+const notEnoughData = 'Not enough usable historical observations for this metric.'
+const sameCurrencyReason =
+  'Same-currency conversion is always 1:1, so historical movement statistics are not applicable.'
+
+const currencyName = (code: CurrencyCode): string =>
+  staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.name ?? code
+
+const toCurrencySummary = (code: CurrencyCode): SupportedCurrency => ({
+  code,
+  name: currencyName(code),
+  symbol: staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.symbol ?? code,
+})
+
+const unsupportedCurrency = (field: 'base' | 'quote', candidate: string): AnalysisError => ({
+  tag: 'unsupported-currency',
+  field,
+  candidate,
+  message: `${candidate.toUpperCase()} is not in the supported currency catalogue.`,
+})
+
+const parseInputCurrency = (
+  field: 'base' | 'quote',
+  candidate: string,
+): Result<AnalysisError, CurrencyCode> =>
+  mapFailure(() => unsupportedCurrency(field, candidate))(
+    parseCurrencyCode(staticSafeCurrencyCatalogue)(candidate),
+  )
+
+const dtoDateRangeRequest = (
+  input: AnalyseDateRangeRequestDto,
+): Result<AnalysisError, DateRangeRequest> =>
+  matchDtoTag<AnalyseDateRangeRequestDto, Result<AnalysisError, DateRangeRequest>>({
+    Custom: (range) => success(customDateRange(range.startDate, range.endDate)),
+    Preset: (range) =>
+      mapResult(presetDateRange)(
+        mapFailure((error: DateRangeError): AnalysisError => ({ tag: 'date-range-error', error }))(
+          parseDateRangePreset(range.preset),
+        ),
+      ),
+  })(input)
+
+const providerErrorToAnalysisError = (error: ProviderError): AnalysisError =>
+  ((category: Readonly<Record<ProviderError['tag'], AnalysisError>>) => category)({
+    'invalid-payload': {
+      tag: 'provider-payload-invalid',
+      message: 'The historical reference-rate payload could not be validated.',
+    },
+    network: {
+      tag: 'provider-unavailable',
+      message: 'We could not load historical reference rates just now. Please try again.',
+    },
+    'rate-limit': {
+      tag: 'provider-unavailable',
+      message: 'The reference-rate provider is busy right now. Please try again.',
+    },
+    unavailable: {
+      tag: 'provider-unavailable',
+      message: 'We could not load historical reference rates just now. Please try again.',
+    },
+  })[error.tag]
+
+const alignDateRange = (range: ResolvedDateRange, today: ISODateStringDto): ResolvedDateRange => {
+  const friendlyEndDate = addCalendarDays(today, -1)
+  const alignedEndDate = matchBoolean<ISODateStringDto>({
+    false: () => friendlyEndDate,
+    true: () => range.endDate,
+  })(isIsoDateBefore(range.endDate, today))
+
+  return {
+    startDate: range.startDate,
+    endDate: alignedEndDate,
+    source: range.source,
+  }
+}
+
+const validatedInput = (
+  base: CurrencyCode,
+  quote: CurrencyCode,
+  requestedDateRange: ResolvedDateRange,
+  effectiveDateRange: ResolvedDateRange,
+): ValidatedAnalysisInput => ({
+  pair: { base, quote },
+  requestedDateRange,
+  effectiveDateRange,
+})
+
+const validateInput = (deps: AnalysisDeps, input: AnalyseRequestDto): Result<AnalysisError, ValidatedAnalysisInput> =>
+  matchResult<AnalysisError, DateRangeRequest, Result<AnalysisError, ValidatedAnalysisInput>>({
+    failure,
+    success: (dateRangeRequest) => {
+      const resolved = mapFailure((error: DateRangeError): AnalysisError => ({ tag: 'date-range-error', error }))(
+        resolveDateRange(dateRangeRequest, deps.today),
+      )
+
+      return matchResult<AnalysisError, ResolvedDateRange, Result<AnalysisError, ValidatedAnalysisInput>>({
+        failure,
+        success: (range) =>
+          liftResult3((base: CurrencyCode, quote: CurrencyCode, requestedDateRange: ResolvedDateRange) =>
+            validatedInput(base, quote, requestedDateRange, alignDateRange(requestedDateRange, deps.today)))(
+            parseInputCurrency('base', input.base),
+            parseInputCurrency('quote', input.quote),
+            success(range),
+          ),
+      })(resolved)
+    },
+  })(dtoDateRangeRequest(input.dateRange))
+
+const rateDerivationErrorToAnalysisError = (error: RateDerivationError): AnalysisError => ({
+  tag: 'rate-derivation-unavailable',
+  message: error.message,
+})
+
+const fetchHistoricalRateSeries =
+  (deps: AnalysisDeps, input: ValidatedAnalysisInput): AsyncResult<AnalysisError, DerivedRateSeries> =>
+    deps.exchangeRateProvider
+      .getHistoricalRates({
+        base: input.pair.base,
+        quote: input.pair.quote,
+        startDate: input.effectiveDateRange.startDate,
+        endDate: input.effectiveDateRange.endDate,
+      })
+      .then(mapFailure(providerErrorToAnalysisError))
+      .then((result) =>
+        matchResult<AnalysisError, HistoricalRateData, Result<AnalysisError, DerivedRateSeries>>({
+          failure,
+          success: (historicalRates) =>
+            mapFailure(rateDerivationErrorToAnalysisError)(
+              deriveRateSeries({
+                requestedPair: input.pair,
+                historicalRates,
+              }),
+            ),
+        })(result),
+      )
+
+const sameCurrencySeries = (pair: CurrencyPair): DerivedRateSeries => ({
+  tag: 'not-applicable',
+  reason: 'same-currency',
+  base: pair.base,
+  quote: pair.quote,
+  observations: [],
+  excludedObservations: [],
+  excludedObservationCount: 0,
+  message: sameCurrencyReason,
+})
+
+const resolveRateSeries =
+  (deps: AnalysisDeps, input: ValidatedAnalysisInput): AsyncResult<AnalysisError, DerivedRateSeries> =>
+    matchBoolean<AsyncResult<AnalysisError, DerivedRateSeries>>({
+      false: () => fetchHistoricalRateSeries(deps, input),
+      true: () => Promise.resolve(success(sameCurrencySeries(input.pair))),
+    })(isSameCurrencyPair(input.pair))
+
+const numberFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 6,
+  minimumFractionDigits: 0,
+})
+
+const percentFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+})
+
+const maybeDto = <A>(maybe: Maybe<A>): MaybeDto<A> =>
+  matchMaybe<A, MaybeDto<A>>({
+    none: () => ({ _tag: 'Nothing' }),
+    some: (value) => ({ _tag: 'Just', value }),
+  })(maybe)
+
+const justDto = <A>(value: A): MaybeDto<A> => ({ _tag: 'Just', value })
+
+const nothingDto = <A>(): MaybeDto<A> => ({ _tag: 'Nothing' })
+
+const displayRate = (value: number): string => numberFormat.format(value)
+
+const displayPercent = (value: number): string => `${percentFormat.format(value)}%`
+
+const displayZScore = (value: number): string => percentFormat.format(value)
+
+const displayValue =
+  (unit: AnalysisMetricUnitDto) =>
+  (value: number): string =>
+    ({
+      percent: () => displayPercent(value),
+      rate: () => displayRate(value),
+      'z-score': () => displayZScore(value),
+    })[unit]()
+
+const availableMetric = (
+  metricKey: AnalysisMetricKey,
+  value: number,
+  unit: AnalysisMetricUnitDto,
+): AnalysisMetricValueDto => ({
+  _tag: 'AnalysisMetricValue',
+  metricKey,
+  rawValue: justDto(value),
+  displayValue: justDto(displayValue(unit)(value)),
+  unit: justDto(unit),
+  availability: { _tag: 'Available' },
+  warnings: [],
+})
+
+const unavailableMetric = (
+  metricKey: AnalysisMetricKey,
+  reason: string,
+): AnalysisMetricValueDto => ({
+  _tag: 'AnalysisMetricValue',
+  metricKey,
+  rawValue: nothingDto(),
+  displayValue: nothingDto(),
+  unit: nothingDto(),
+  availability: { _tag: 'Unavailable', reason },
+  warnings: [],
+})
+
+const notApplicableMetric = (metricKey: AnalysisMetricKey): AnalysisMetricValueDto => ({
+  _tag: 'AnalysisMetricValue',
+  metricKey,
+  rawValue: nothingDto(),
+  displayValue: nothingDto(),
+  unit: nothingDto(),
+  availability: { _tag: 'NotApplicable', reason: sameCurrencyReason },
+  warnings: [],
+})
+
+const metricFromMaybe = (
+  metricKey: AnalysisMetricKey,
+  unit: AnalysisMetricUnitDto,
+  maybe: Maybe<number>,
+  unavailableReason: string,
+): AnalysisMetricValueDto =>
+  matchMaybe<number, AnalysisMetricValueDto>({
+    none: () => unavailableMetric(metricKey, unavailableReason),
+    some: (value) => availableMetric(metricKey, value, unit),
+  })(maybe)
+
+const metricsFromStats = (
+  levelStats: RateLevelStats,
+  movementStats: MovementStats,
+): PairAnalysisMetricsDto => ({
+  latestReferenceRate: metricFromMaybe('latest-reference-rate', 'rate', levelStats.latestRate, notEnoughData),
+  periodMovement: metricFromMaybe('period-movement', 'percent', movementStats.periodMovementPercent, notEnoughData),
+  averageRate: metricFromMaybe('average-rate', 'rate', levelStats.mean, notEnoughData),
+  observedRange: metricFromMaybe('observed-range', 'rate', levelStats.range, notEnoughData),
+  latestPosition: metricFromMaybe('latest-position', 'percent', levelStats.percentilePosition, notEnoughData),
+  awayFromTypical: metricFromMaybe('away-from-typical', 'z-score', levelStats.zScore, zScoreUnavailableReason),
+  typicalMovement: metricFromMaybe('typical-movement', 'percent', movementStats.typicalMovementPercent, notEnoughData),
+})
+
+const sameCurrencyMetrics = (): PairAnalysisMetricsDto => ({
+  latestReferenceRate: availableMetric('latest-reference-rate', 1, 'rate'),
+  periodMovement: notApplicableMetric('period-movement'),
+  averageRate: notApplicableMetric('average-rate'),
+  observedRange: notApplicableMetric('observed-range'),
+  latestPosition: notApplicableMetric('latest-position'),
+  awayFromTypical: notApplicableMetric('away-from-typical'),
+  typicalMovement: notApplicableMetric('typical-movement'),
+})
+
+const metricByKey = (metrics: PairAnalysisMetricsDto, key: AnalysisMetricKey): AnalysisMetricValueDto =>
+  ({
+    'average-rate': () => metrics.averageRate,
+    'away-from-typical': () => metrics.awayFromTypical,
+    'latest-position': () => metrics.latestPosition,
+    'latest-reference-rate': () => metrics.latestReferenceRate,
+    'observed-range': () => metrics.observedRange,
+    'period-movement': () => metrics.periodMovement,
+    'typical-movement': () => metrics.typicalMovement,
+  })[key]()
+
+const unavailableReason = (metric: AnalysisMetricValueDto): MaybeDto<string> =>
+  matchDtoTag<AnalysisMetricAvailabilityDto, MaybeDto<string>>({
+    Available: () => nothingDto<string>(),
+    Limited: (limited) => justDto(limited.reason),
+    NotApplicable: (notApplicable) => justDto(notApplicable.reason),
+    Unavailable: (unavailable) => justDto(unavailable.reason),
+  })(metric.availability)
+
+const completeOrPartialStatusByKey: Readonly<Record<'false' | 'true', DataQualityDto['status']>> = {
+  false: 'complete',
+  true: 'partial-data',
+}
+
+const noDataOrLimitedStatusByKey: Readonly<Record<'false' | 'true', DataQualityDto['status']>> = {
+  false: 'limited-data',
+  true: 'no-data',
+}
+
+const explanation =
+  (metrics: PairAnalysisMetricsDto) =>
+  (entry: FormulaRegistryEntry): CalculationExplanationDto => ({
+    formulaKey: entry.formulaKey,
+    metricKey: entry.metricKey,
+    title: entry.title,
+    plainMeaning: entry.plainMeaning,
+    latexFormula: entry.latex,
+    accessibleText: entry.accessibleFormulaText,
+    steps: entry.steps,
+    result: metricByKey(metrics, entry.metricKey),
+    interpretation: entry.interpretation,
+    caveat: justDto(entry.caveat),
+    unavailableReason: unavailableReason(metricByKey(metrics, entry.metricKey)),
+  })
+
+const chartPoint = (observation: RateObservation): PairChartPointDto => ({
+  date: observation.date,
+  rate: observation.rate,
+  displayRate: displayRate(observation.rate),
+})
+
+const chartSummary = (pair: CurrencyPair, count: number): string =>
+  ({
+    false: () => `No usable historical observations were found for ${pair.base}/${pair.quote}.`,
+    true: () => `${pair.base}/${pair.quote} has ${count.toString()} usable historical observations in the selected period.`,
+  })[booleanKey(count > 0)]()
+
+const firstObservationDate = (observations: ReadonlyArray<RateObservation>): Maybe<ISODateStringDto> =>
+  mapMaybe((observation: RateObservation) => observation.date)(fromNullable(observations[0]))
+
+const latestObservationDate = (observations: ReadonlyArray<RateObservation>): Maybe<ISODateStringDto> =>
+  mapMaybe((observation: RateObservation) => observation.date)(
+    fromNullable(observations[observations.length - 1]),
+  )
+
+const completeOrPartialStatus = (
+  excludedObservationCount: number,
+): DataQualityDto['status'] =>
+  completeOrPartialStatusByKey[booleanKey(excludedObservationCount > 0)]
+
+const noDataOrLimitedStatus = (
+  usableObservationCount: number,
+): DataQualityDto['status'] =>
+  noDataOrLimitedStatusByKey[booleanKey(usableObservationCount === 0)]
+
+const dataQualityStatus = (
+  requestedObservationCount: number,
+  usableObservationCount: number,
+  excludedObservationCount: number,
+): DataQualityDto['status'] =>
+  ({
+    false: () => completeOrPartialStatus(excludedObservationCount),
+    true: () => noDataOrLimitedStatus(usableObservationCount),
+  })[booleanKey(usableObservationCount < 2)]()
+
+const dataQualityMessage = (status: DataQualityDto['status']): string =>
+  ({
+    complete: () => 'All returned observations were usable.',
+    'limited-data': () => 'Only limited historical data was available for the selected period.',
+    'no-data': () => 'No usable historical observations were returned for the selected period.',
+    'partial-data': () => 'Some provider observations were excluded because they were missing or invalid.',
+    'same-currency': () => sameCurrencyReason,
+  })[status]()
+
+const seriesDataQuality = (
+  requestedObservationCount: number,
+  series: ApplicableRateSeries,
+): DataQualityDto => {
+  const status = dataQualityStatus(
+    requestedObservationCount,
+    series.observations.length,
+    series.excludedObservationCount,
+  )
+
+  return {
+    status,
+    requestedObservationCount,
+    usableObservationCount: series.observations.length,
+    excludedObservationCount: series.excludedObservationCount,
+    firstObservationDate: maybeDto(firstObservationDate(series.observations)),
+    latestObservationDate: maybeDto(latestObservationDate(series.observations)),
+    messages: [dataQualityMessage(status)],
+  }
+}
+
+const sameCurrencyDataQuality = (): DataQualityDto => ({
+  status: 'same-currency',
+  requestedObservationCount: 0,
+  usableObservationCount: 0,
+  excludedObservationCount: 0,
+  firstObservationDate: nothingDto(),
+  latestObservationDate: nothingDto(),
+  messages: [sameCurrencyReason],
+})
+
+const dateRangeViewModel = (
+  requested: ResolvedDateRange,
+  effective: ResolvedDateRange,
+): AnalysisDateRangeDto => {
+  const aligned = requested.endDate !== effective.endDate
+
+  return {
+    requested: {
+      startDate: requested.startDate,
+      endDate: requested.endDate,
+      source: requested.source,
+    },
+    effective: {
+      startDate: effective.startDate,
+      endDate: effective.endDate,
+      aligned,
+      note: matchBoolean<MaybeDto<string>>({
+        false: () => nothingDto(),
+        true: () =>
+          justDto(
+            `End date aligned to the previous ${friendlyPreviousToleranceDays.toString()}-day provider window.`,
+          ),
+      })(aligned),
+    },
+  }
+}
+
+const keyResult = (key: string, label: string, metric: AnalysisMetricValueDto) =>
+  matchDtoTag<MaybeDto<string>, ReadonlyArray<{ readonly key: string, readonly label: string, readonly value: string }>>({
+    Just: (value) => [{ key, label, value: value.value }],
+    Nothing: () => [],
+  })(metric.displayValue)
+
+const keyResults = (metrics: PairAnalysisMetricsDto) => [
+  ...keyResult('latestReferenceRate', 'Latest reference rate', metrics.latestReferenceRate),
+  ...keyResult('periodMovement', 'Period movement', metrics.periodMovement),
+  ...keyResult('typicalMovement', 'Typical movement', metrics.typicalMovement),
+]
+
+const caveats = [
+  'Reference rates may differ from live market, bank, card or payment-service rates.',
+  'Historical observations are not forward-filled when provider dates are missing.',
+]
+
+const applicableViewModel = (
+  input: ValidatedAnalysisInput,
+  series: ApplicableRateSeries,
+  requestedObservationCount: number,
+): PairAnalysisViewModelDto => {
+  const levelStats = calculateRateLevelStats(series.observations)
+  const movementStats = calculateMovementStats(series.observations)
+  const metrics = metricsFromStats(levelStats, movementStats)
+  const dataQuality = seriesDataQuality(requestedObservationCount, series)
+  const summary = chartSummary(input.pair, series.observations.length)
+
+  return {
+    mode: 'pair-analysis',
+    pair: {
+      base: toCurrencySummary(input.pair.base),
+      quote: toCurrencySummary(input.pair.quote),
+      label: `${input.pair.base}/${input.pair.quote}`,
+    },
+    dateRange: dateRangeViewModel(input.requestedDateRange, input.effectiveDateRange),
+    chart: {
+      title: `${input.pair.base}/${input.pair.quote} reference-rate history`,
+      summary,
+      points: series.observations.map(chartPoint),
+      tableCaption: `${input.pair.base}/${input.pair.quote} cleaned observations`,
+    },
+    metrics,
+    dataQuality,
+    insight: dataQuality.messages[0] ?? summary,
+    calculationExplanations: analysisFormulaEntries.map(explanation(metrics)),
+    caveats,
+    attribution,
+    aiContextSeed: {
+      mode: 'pair-analysis',
+      selectedCurrencies: { base: input.pair.base, quotes: [input.pair.quote] },
+      selectedDateRange: justDto(dateRangeViewModel(input.requestedDateRange, input.effectiveDateRange).effective),
+      keyResults: keyResults(metrics),
+      computedStats: justDto({
+        observationCount: dataQuality.usableObservationCount,
+        dataQualityStatus: dataQuality.status,
+      }),
+      chartSummary: justDto(summary),
+      formulaSummaries: formulaSummariesForMetrics(analysisFormulaEntries.map((entry) => entry.metricKey)),
+      appDisclaimers: caveats,
+    },
+  }
+}
+
+const sameCurrencyViewModel = (input: ValidatedAnalysisInput): PairAnalysisViewModelDto => {
+  const metrics = sameCurrencyMetrics()
+  const dateRange = dateRangeViewModel(input.requestedDateRange, input.effectiveDateRange)
+
+  return {
+    mode: 'pair-analysis',
+    pair: {
+      base: toCurrencySummary(input.pair.base),
+      quote: toCurrencySummary(input.pair.quote),
+      label: `${input.pair.base}/${input.pair.quote}`,
+    },
+    dateRange,
+    chart: {
+      title: `${input.pair.base}/${input.pair.quote} reference-rate history`,
+      summary: sameCurrencyReason,
+      points: [],
+      tableCaption: `${input.pair.base}/${input.pair.quote} cleaned observations`,
+    },
+    metrics,
+    dataQuality: sameCurrencyDataQuality(),
+    insight: sameCurrencyReason,
+    calculationExplanations: analysisFormulaEntries.map(explanation(metrics)),
+    caveats,
+    attribution,
+    aiContextSeed: {
+      mode: 'pair-analysis',
+      selectedCurrencies: { base: input.pair.base, quotes: [input.pair.quote] },
+      selectedDateRange: justDto(dateRange.effective),
+      keyResults: keyResults(metrics),
+      computedStats: justDto({ observationCount: 0, dataQualityStatus: 'same-currency' }),
+      chartSummary: justDto(sameCurrencyReason),
+      formulaSummaries: formulaSummariesForMetrics(analysisFormulaEntries.map((entry) => entry.metricKey)),
+      appDisclaimers: caveats,
+    },
+  }
+}
+
+const toViewModel = (
+  input: ValidatedAnalysisInput,
+  requestedObservationCount: number,
+  series: DerivedRateSeries,
+): PairAnalysisViewModelDto =>
+  matchTag<DerivedRateSeries, PairAnalysisViewModelDto>({
+    applicable: (applicableSeries) => applicableViewModel(input, applicableSeries, requestedObservationCount),
+    'not-applicable': () => sameCurrencyViewModel(input),
+  })(series)
+
+const requestedObservationCount = (series: DerivedRateSeries): number =>
+  matchTag<DerivedRateSeries, number>({
+    applicable: (applicableSeries) =>
+      applicableSeries.observations.length + applicableSeries.excludedObservationCount,
+    'not-applicable': () => 0,
+  })(series)
+
+export const analyse =
+  (deps: AnalysisDeps) =>
+  (input: AnalyseRequestDto): AsyncResult<AnalysisError, PairAnalysisViewModelDto> =>
+    matchResult<AnalysisError, ValidatedAnalysisInput, AsyncResult<AnalysisError, PairAnalysisViewModelDto>>({
+      failure: (error) => Promise.resolve(failure(error)),
+      success: (validated) =>
+        resolveRateSeries(deps, validated)
+          .then(mapResult((series) => toViewModel(validated, requestedObservationCount(series), series))),
+    })(validateInput(deps, input))
