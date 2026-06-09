@@ -296,6 +296,97 @@ p {
   font-size: 0.86rem;
 }
 
+.analysis-card {
+  width: min(100%, 860px);
+}
+
+.analysis-result {
+  display: grid;
+  gap: 22px;
+}
+
+.analysis-result__header,
+.analysis-result__quality,
+.analysis-result__formulas,
+.chart-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.analysis-result__quality,
+.chart-panel {
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface-muted);
+  padding: 16px;
+}
+
+.analysis-result__quality dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.analysis-result__quality div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.analysis-result__quality dt {
+  color: var(--clr-muted);
+}
+
+.analysis-result__quality dd {
+  margin: 0;
+  font-weight: 760;
+}
+
+.chart-panel h3,
+.analysis-result__quality h3,
+.analysis-result__formulas h3 {
+  margin: 0;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow-wrap: anywhere;
+}
+
+.data-table caption {
+  color: var(--clr-muted);
+  padding: 0 0 8px;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  border-top: 1px solid var(--clr-border);
+  padding: 10px 8px;
+  text-align: left;
+}
+
+.formula-disclosure {
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  padding: 12px;
+}
+
+.formula-disclosure summary {
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.formula-disclosure code {
+  display: block;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--clr-surface-muted);
+  padding: 10px;
+}
+
 .link-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
