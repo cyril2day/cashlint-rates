@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { ConverterCard } from '@/components/conversion/converter-card'
 
+export const dynamic = 'force-dynamic'
+
 const supportedPairs: ReadonlyArray<{ readonly label: string, readonly href: string }> = [
   { label: 'USD to GBP', href: '/analyse?base=USD&quote=GBP' },
   { label: 'USD to EUR', href: '/analyse?base=USD&quote=EUR' },

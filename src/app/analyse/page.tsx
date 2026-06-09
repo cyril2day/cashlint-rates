@@ -3,6 +3,8 @@ import { AnalyseCard } from '@/components/analysis/analyse-card'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
 import { fromNullable, matchMaybe } from '@/shared/fp'
 
+export const dynamic = 'force-dynamic'
+
 type AnalysePageProps = {
   readonly searchParams: Promise<Readonly<Record<string, string | undefined>>>
 }
