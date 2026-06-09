@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { ConverterCard } from '@/components/conversion/converter-card'
 
-const supportedPairs = [
+const supportedPairs: ReadonlyArray<{ readonly label: string, readonly href: string }> = [
   { label: 'USD to GBP', href: '/analyse?base=USD&quote=GBP' },
   { label: 'USD to EUR', href: '/analyse?base=USD&quote=EUR' },
   { label: 'GBP to PHP', href: '/analyse?base=GBP&quote=PHP' },
-] as const
+]
 
 export default function HomePage() {
   return (

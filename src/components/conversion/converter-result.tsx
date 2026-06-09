@@ -2,16 +2,17 @@
 
 import Link from 'next/link'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
+import { matchDtoTag } from '@/shared/fp'
 
 type ConverterResultProps = {
   readonly result: ConversionViewModelDto
 }
 
 const effectiveDateText = (result: ConversionViewModelDto): string =>
-  ({
-    Just: () => `Effective date: ${(result.result.effectiveDate as { readonly value: string }).value}`,
+  matchDtoTag<ConversionViewModelDto['result']['effectiveDate'], string>({
+    Just: (effectiveDate) => `Effective date: ${effectiveDate.value}`,
     Nothing: () => 'Same-currency conversion has no provider date.',
-  })[result.result.effectiveDate._tag]()
+  })(result.result.effectiveDate)
 
 export function ConverterResult({ result }: ConverterResultProps) {
   return (

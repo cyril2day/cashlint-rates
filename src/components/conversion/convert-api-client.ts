@@ -2,6 +2,7 @@
 
 import type { ApiFailureDto, ApiResponseDto } from '@/shared/dto/api'
 import type { ConvertRequestDto, ConversionViewModelDto } from '@/shared/dto/conversion'
+import { matchDtoTag, matchTag } from '@/shared/fp'
 
 export type ConvertClientResult =
   | {
@@ -30,21 +31,21 @@ export const postConversionRequest = (input: ConvertRequestDto): Promise<Convert
     },
     method: 'POST',
   })
-    .then((response) => response.json() as Promise<ApiResponseDto<ConversionViewModelDto>>)
-    .then((body) =>
-      ({
-        ApiFailure: () => ({
-          tag: 'failure' as const,
-          error: (body as ApiFailureDto).error,
+    .then((response) => response.json())
+    .then((body: ApiResponseDto<ConversionViewModelDto>) =>
+      matchDtoTag<ApiResponseDto<ConversionViewModelDto>, ConvertClientResult>({
+        ApiFailure: (failureBody) => ({
+          tag: 'failure',
+          error: failureBody.error,
         }),
-        ApiSuccess: () => ({
-          tag: 'success' as const,
-          value: (body as { readonly data: ConversionViewModelDto }).data,
+        ApiSuccess: (successBody) => ({
+          tag: 'success',
+          value: successBody.data,
         }),
-      })[body._tag](),
+      })(body),
     )
     .catch(() => ({
-      tag: 'failure' as const,
+      tag: 'failure',
       error: fallbackError,
     }))
 
@@ -54,7 +55,7 @@ export const matchConvertClientResult =
     readonly success: (value: ConversionViewModelDto) => A
   }) =>
   (result: ConvertClientResult): A =>
-    ({
-      failure: () => handlers.failure((result as { readonly error: ApiFailureDto['error'] }).error),
-      success: () => handlers.success((result as { readonly value: ConversionViewModelDto }).value),
-    })[result.tag]()
+    matchTag<ConvertClientResult, A>({
+      failure: (failureResult) => handlers.failure(failureResult.error),
+      success: (successResult) => handlers.success(successResult.value),
+    })(result)

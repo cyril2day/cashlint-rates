@@ -5,6 +5,7 @@ import type { Dispatch, ReactNode } from 'react'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
 import type { ApiFailureDto } from '@/shared/dto/api'
 import type { ConvertRequestDto, ConversionViewModelDto } from '@/shared/dto/conversion'
+import { allTrue, matchBoolean, matchTag } from '@/shared/fp'
 import { matchConvertClientResult, postConversionRequest } from './convert-api-client'
 import { ConverterError } from './converter-error'
 import { ConverterResult } from './converter-result'
@@ -27,33 +28,33 @@ type ConverterState =
 
 type ConverterAction =
   | {
-      readonly type: 'submit'
+      readonly tag: 'submit'
     }
   | {
-      readonly type: 'failure'
+      readonly tag: 'failure'
       readonly error: ApiFailureDto['error']
     }
   | {
-      readonly type: 'success'
+      readonly tag: 'success'
       readonly result: ConversionViewModelDto
     }
 
 const initialState: ConverterState = { tag: 'initial' }
 
 const reducer = (_state: ConverterState, action: ConverterAction): ConverterState =>
-  ({
-    failure: {
+  matchTag<ConverterAction, ConverterState>({
+    failure: (failureAction) => ({
       tag: 'failure',
-      error: (action as { readonly error: ApiFailureDto['error'] }).error,
-    },
-    submit: {
+      error: failureAction.error,
+    }),
+    submit: () => ({
       tag: 'loading',
-    },
-    success: {
+    }),
+    success: (successAction) => ({
       tag: 'success',
-      result: (action as { readonly result: ConversionViewModelDto }).result,
-    },
-  })[action.type] as ConverterState
+      result: successAction.result,
+    }),
+  })(action)
 
 const clientValidationError: ApiFailureDto['error'] = {
   code: 'INVALID_AMOUNT',
@@ -70,32 +71,34 @@ const clientValidationError: ApiFailureDto['error'] = {
   details: [],
 }
 
-const toRequest = (form: HTMLFormElement): ConvertRequestDto => {
+const toRequest = (
+  form: HTMLFormElement,
+  base: string,
+  quote: string,
+): ConvertRequestDto => {
   const formData = new FormData(form)
   const amount = formData.get('amount')
-  const base = formData.get('base')
-  const quote = formData.get('quote')
 
   return {
     amount: Number(amount),
-    base: base as string,
-    quote: quote as string,
+    base,
+    quote,
   }
 }
 
 const isPositiveAmount = (input: ConvertRequestDto): boolean =>
-  Number.isFinite(input.amount) && input.amount > 0
+  allTrue([Number.isFinite(input.amount), input.amount > 0])
 
 const dispatchClientResult =
   (dispatch: Dispatch<ConverterAction>) =>
   (result: Awaited<ReturnType<typeof postConversionRequest>>): undefined => {
     matchConvertClientResult<undefined>({
       failure: (error) => {
-        dispatch({ type: 'failure', error })
+        dispatch({ tag: 'failure', error })
         return undefined
       },
       success: (value) => {
-        dispatch({ type: 'success', result: value })
+        dispatch({ tag: 'success', result: value })
         return undefined
       },
     })(result)
@@ -106,24 +109,26 @@ const dispatchClientResult =
 const submitInput =
   (dispatch: Dispatch<ConverterAction>) =>
   (input: ConvertRequestDto): void => {
-    ({
+    matchBoolean<undefined>({
       false: () => {
-        dispatch({ type: 'failure', error: clientValidationError })
+        dispatch({ tag: 'failure', error: clientValidationError })
+        return undefined
       },
       true: () => {
-        dispatch({ type: 'submit' })
+        dispatch({ tag: 'submit' })
         void postConversionRequest(input).then(dispatchClientResult(dispatch))
+        return undefined
       },
-    })[String(isPositiveAmount(input)) as 'false' | 'true']()
+    })(isPositiveAmount(input))
   }
 
 const renderState = (state: ConverterState): ReactNode =>
-  ({
-    failure: () => <ConverterError error={(state as { readonly error: ApiFailureDto['error'] }).error} />,
+  matchTag<ConverterState, ReactNode>({
+    failure: (failureState) => <ConverterError error={failureState.error} />,
     initial: () => <p className="converter-card__note">Enter an amount and choose two currencies.</p>,
     loading: () => <p className="converter-card__note" role="status">Loading latest reference rate.</p>,
-    success: () => <ConverterResult result={(state as { readonly result: ConversionViewModelDto }).result} />,
-  })[state.tag]()
+    success: (successState) => <ConverterResult result={successState.result} />,
+  })(state)
 
 export function ConverterCard() {
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -137,7 +142,7 @@ export function ConverterCard() {
       aria-label="Currency converter"
       onSubmit={(event) => {
         event.preventDefault()
-        submitInput(dispatch)(toRequest(event.currentTarget))
+        submitInput(dispatch)(toRequest(event.currentTarget, base, quote))
       }}
     >
       <div className="converter-card__header">
