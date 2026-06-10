@@ -10,6 +10,7 @@ import type {
   RankedQuoteDto,
 } from '@/shared/dto/comparison'
 import { IndexedComparisonChart } from '@/components/charts'
+import { BogartPanel } from '@/components/bogart'
 import { fromNullable, matchBoolean, matchDtoTag, matchMaybe } from '@/shared/fp'
 
 const maybeMetricText = (metric: ComparisonMetricValueDto): string =>
@@ -149,6 +150,7 @@ export function ComparisonResult({ result }: { readonly result: ComparisonViewMo
       <ComparisonChartPanel chart={result.chart} />
       <ComparisonRowsTable result={result} />
       <ComparisonQualityPanel rows={result.rows} />
+      <BogartPanel context={result.aiContextSeed} />
       <p className="converter-card__note">{sourceLabel}</p>
     </section>
   )

@@ -611,6 +611,67 @@ p {
   font-weight: 700;
 }
 
+.bogart-panel {
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  padding: 12px 14px;
+}
+
+.bogart-panel summary {
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.bogart-panel__body {
+  display: grid;
+  gap: 14px;
+  padding-top: 12px;
+}
+
+.bogart-panel__body h3 {
+  margin: 0 0 4px;
+}
+
+.bogart-panel__body p {
+  margin: 0;
+}
+
+.bogart-panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bogart-panel__form {
+  display: grid;
+  gap: 8px;
+}
+
+.bogart-panel__input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.bogart-panel__input-row input {
+  min-width: 0;
+}
+
+.bogart-panel__message {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface-muted);
+  padding: 12px;
+}
+
+.bogart-panel__message span {
+  color: var(--clr-muted);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     width: min(100% - 24px, 1120px);
@@ -636,6 +697,10 @@ p {
   .metric-grid,
   .comparison-highlights,
   .link-list {
+    grid-template-columns: 1fr;
+  }
+
+  .bogart-panel__input-row {
     grid-template-columns: 1fr;
   }
 }

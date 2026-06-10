@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
 import { matchDtoTag } from '@/shared/fp'
+import { BogartPanel } from '@/components/bogart'
 
 type ConverterResultProps = {
   readonly result: ConversionViewModelDto
@@ -51,6 +52,7 @@ export function ConverterResult({ result }: ConverterResultProps) {
       <p className="converter-card__note">
         Reference rates may differ from live market, bank, card or payment-service rates.
       </p>
+      <BogartPanel context={result.aiContextSeed} />
     </section>
   )
 }

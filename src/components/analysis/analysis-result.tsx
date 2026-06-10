@@ -6,6 +6,7 @@ import { AnalysisDataQualityPanel } from './analysis-data-quality-panel'
 import { AnalysisFormulaDisclosures } from './analysis-formula-disclosures'
 import { AnalysisMetricGrid } from './analysis-metric-grid'
 import { AnalysisResultHeader } from './analysis-result-header'
+import { BogartPanel } from '@/components/bogart'
 
 export function AnalysisResult({ result }: { readonly result: PairAnalysisViewModelDto }) {
   return (
@@ -15,6 +16,7 @@ export function AnalysisResult({ result }: { readonly result: PairAnalysisViewMo
       <AnalysisChartPanel chart={result.chart} />
       <AnalysisDataQualityPanel dataQuality={result.dataQuality} />
       <AnalysisFormulaDisclosures explanations={result.calculationExplanations} />
+      <BogartPanel context={result.aiContextSeed} />
     </section>
   )
 }
