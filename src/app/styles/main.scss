@@ -360,6 +360,170 @@ p {
   max-width: 100%;
 }
 
+.quote-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quote-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid var(--clr-border);
+  border-radius: 999px;
+  background: var(--clr-surface-muted);
+  color: var(--clr-text);
+  cursor: pointer;
+  padding: 0 12px;
+}
+
+.comparison-result {
+  gap: 18px;
+}
+
+.comparison-highlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.comparison-highlight {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface-muted);
+  padding: 16px;
+}
+
+.comparison-highlight--wide {
+  grid-column: 1 / -1;
+}
+
+.comparison-highlight span {
+  color: var(--clr-muted);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.comparison-highlight strong {
+  font-size: 1.35rem;
+}
+
+.comparison-chart {
+  display: grid;
+  gap: 10px;
+}
+
+.comparison-chart__svg {
+  display: block;
+  min-width: 560px;
+  width: 100%;
+}
+
+.comparison-chart__axis {
+  stroke: var(--clr-border);
+  stroke-width: 1.5;
+  shape-rendering: crispEdges;
+}
+
+.comparison-chart__tick line {
+  stroke: color-mix(in oklab, var(--clr-border) 74%, transparent);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.comparison-chart__tick text {
+  dominant-baseline: middle;
+  fill: var(--clr-muted);
+  font-size: 0.72rem;
+}
+
+.comparison-chart__line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.comparison-chart__point {
+  cursor: pointer;
+}
+
+.comparison-chart__point:focus {
+  outline: none;
+}
+
+.comparison-chart__point-hit-area {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.comparison-chart__point-dot {
+  fill: var(--clr-surface);
+  opacity: 0;
+  stroke: var(--clr-accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.comparison-chart__point:hover .comparison-chart__point-dot,
+.comparison-chart__point:focus-visible .comparison-chart__point-dot,
+.comparison-chart__point--active .comparison-chart__point-dot {
+  fill: var(--clr-accent);
+  opacity: 1;
+  stroke: var(--clr-surface);
+}
+
+.comparison-chart__tooltip {
+  pointer-events: none;
+}
+
+.comparison-chart__tooltip-background {
+  fill: var(--clr-text);
+  stroke: var(--clr-surface);
+  stroke-width: 1;
+}
+
+.comparison-chart__tooltip-text {
+  dominant-baseline: middle;
+  fill: var(--clr-surface);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.comparison-chart__error {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  padding: 12px;
+}
+
+.comparison-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--clr-muted);
+  font-size: 0.88rem;
+}
+
+.comparison-chart__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comparison-chart__legend span span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
 // -----------------------------------------------------------------------------
 // pristine-charts accent overrides
 // The library ships its own CSS (LineChart.css, ChartError.css) as of v0.1.4.
@@ -470,6 +634,7 @@ p {
 
   .converter-card__grid,
   .metric-grid,
+  .comparison-highlights,
   .link-list {
     grid-template-columns: 1fr;
   }
