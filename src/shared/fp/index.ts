@@ -5,6 +5,7 @@ export {
   both,
   complement,
   cond,
+  curry,
   either,
   filter,
   identity,
@@ -166,13 +167,20 @@ export const allTrue = (values: ReadonlyArray<boolean>): boolean =>
 export const anyTrue = (values: ReadonlyArray<boolean>): boolean =>
   values.some((value) => value)
 
+// apResult :: Result<E, (A -> B)> -> Result<E, A> -> Result<E, B>
+const apResult = <E, A, B>(
+  resultFn: Result<E, (a: A) => B>,
+): ((resultA: Result<E, A>) => Result<E, B>) =>
+  matchResult<E, (a: A) => B, (resultA: Result<E, A>) => Result<E, B>>({
+    failure: (error) => () => failure(error),
+    success: (fn) => (resultA) => mapResult<A, B>(fn)(resultA),
+  })(resultFn)
+
 // liftResult2 :: (A -> B -> C) -> Result<E, A> -> Result<E, B> -> Result<E, C>
 export const liftResult2 =
   <A, B, C>(combine: (first: A, second: B) => C) =>
   <E>(first: Result<E, A>, second: Result<E, B>): Result<E, C> =>
-    chainResult<E, A, C>((firstValue) =>
-      mapResult<B, C>((secondValue) => combine(firstValue, secondValue))(second),
-    )(first)
+    apResult(mapResult((a: A) => (b: B) => combine(a, b))(first))(second)
 
 // liftResult3 :: (A -> B -> C -> D) -> Result<E, A> -> Result<E, B> -> Result<E, C> -> Result<E, D>
 export const liftResult3 =
@@ -182,11 +190,9 @@ export const liftResult3 =
     second: Result<E, B>,
     third: Result<E, C>,
   ): Result<E, D> =>
-    chainResult<E, A, D>((firstValue) =>
-      chainResult<E, B, D>((secondValue) =>
-        mapResult<C, D>((thirdValue) => combine(firstValue, secondValue, thirdValue))(third),
-      )(second),
-    )(first)
+    apResult(
+      apResult(mapResult((a: A) => (b: B) => (c: C) => combine(a, b, c))(first))(second),
+    )(third)
 
 // liftResult4 :: (A -> B -> C -> D -> X) -> Result<E, A> -> Result<E, B> -> Result<E, C> -> Result<E, D> -> Result<E, X>
 export const liftResult4 =
@@ -197,14 +203,11 @@ export const liftResult4 =
     third: Result<E, C>,
     fourth: Result<E, D>,
   ): Result<E, X> =>
-    chainResult<E, A, X>((firstValue) =>
-      chainResult<E, B, X>((secondValue) =>
-        chainResult<E, C, X>((thirdValue) =>
-          mapResult<D, X>((fourthValue) =>
-            combine(firstValue, secondValue, thirdValue, fourthValue))(fourth),
-        )(third),
-      )(second),
-    )(first)
+    apResult(
+      apResult(
+        apResult(mapResult((a: A) => (b: B) => (c: C) => (d: D) => combine(a, b, c, d))(first))(second),
+      )(third),
+    )(fourth)
 
 // matchMaybe :: MaybeHandlers<A, B> -> Maybe<A> -> B
 export const matchMaybe =
@@ -226,11 +229,28 @@ export const fromNullable = <A>(value: A | null | undefined): Maybe<NonNullable<
   return some(value)
 }
 
+// isDefined :: (A | undefined) -> boolean  (type guard: narrows to A)
+export const isDefined = <A>(value: A | undefined): value is A =>
+  value !== undefined
+
 // foldMaybe :: B -> (A -> B) -> Maybe<A> -> B
 export const foldMaybe =
   <A, B>(onNone: B, onSome: (value: A) => B) =>
   (maybe: Maybe<A>): B =>
     matchMaybe<A, B>({ none: () => onNone, some: onSome })(maybe)
+
+// withDefault :: A -> Maybe<A> -> A
+export const withDefault =
+  <A>(defaultValue: A) =>
+  (maybe: Maybe<A>): A =>
+    matchMaybe<A, A>({ none: () => defaultValue, some: (value) => value })(maybe)
+
+// maybeToArray :: Maybe<A> -> ReadonlyArray<A>
+export const maybeToArray = <A>(maybe: Maybe<A>): ReadonlyArray<A> =>
+  matchMaybe<A, ReadonlyArray<A>>({
+    none: () => [],
+    some: (value) => [value],
+  })(maybe)
 
 // mapMaybe :: (A -> B) -> Maybe<A> -> Maybe<B>
 export const mapMaybe =
