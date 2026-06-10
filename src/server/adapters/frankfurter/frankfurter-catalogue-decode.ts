@@ -3,6 +3,7 @@ import { decodeRecord, decodeString } from '@/server/http/request-validation'
 import type { ProviderCurrencyCatalogueResult, ProviderError } from '@/server/ports/rate-provider'
 import {
   chainResult,
+  foldMaybe,
   fromNullable,
   mapResult,
   matchMaybe,
@@ -37,7 +38,7 @@ const providerCurrencyEntry =
         code,
         name,
       }))(
-        providerDecode(decodeString([code])(record[code] ?? staticCurrencyName(code))),
+        providerDecode(decodeString([code])(foldMaybe(staticCurrencyName(code), (v: unknown) => v)(fromNullable(record[code])))),
       ),
     )(
       mapFailure(toInvalidPayload)(

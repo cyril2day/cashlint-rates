@@ -3,8 +3,8 @@
 import type { ReactNode } from 'react'
 import { none } from 'pristine-charts'
 import { LineChart, formatLineChartNumber } from 'pristine-charts/line-chart'
-import type { PairChartViewModelDto } from '@/shared/dto/analysis'
-import { fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
+import type { PairChartPointDto, PairChartViewModelDto } from '@/shared/dto/analysis'
+import { chainMaybe, fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
 
 function AnalysisObservationTable({
   chart,
@@ -44,7 +44,9 @@ const formatChartDate =
       none: () => String(value),
       some: (date) => date,
     })(
-      fromNullable(chart.points[Math.round(value)]?.date),
+      chainMaybe((p: PairChartPointDto) => fromNullable(p.date))(
+        fromNullable(chart.points[Math.round(value)]),
+      ),
     )
 
 function AnalysisLineChart({

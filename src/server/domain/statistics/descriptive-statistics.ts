@@ -3,6 +3,7 @@ import {
   allTrue,
   anyTrue,
   booleanKey,
+  withDefault,
   fromNullable,
   matchBoolean,
   matchMaybe,
@@ -145,7 +146,9 @@ const zScoreValue = (values: ReadonlyArray<number>): Maybe<number> =>
     const mean = meanValue(nonEmptyValues)
     const latest = nonEmptyValues[nonEmptyValues.length - 1]
 
-    return ((latest ?? mean) - mean) / standardDeviation
+    const l = withDefault(mean)(fromNullable(latest))
+
+    return (l - mean) / standardDeviation
   })
 
 const zScoreAvailability = (values: ReadonlyArray<number>): Maybe<number> =>

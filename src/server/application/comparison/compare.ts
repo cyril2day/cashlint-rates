@@ -45,6 +45,7 @@ import {
   booleanKey,
   chainResult,
   failure,
+  foldMaybe,
   fromNullable,
   liftResult2,
   mapFailure,
@@ -171,13 +172,20 @@ const justDto = <A>(value: A): MaybeDto<A> => ({ _tag: 'Just', value })
 
 const nothingDto = <A>(): MaybeDto<A> => ({ _tag: 'Nothing' })
 
+const findCurrency = (
+  code: CurrencyCode,
+): Maybe<SupportedCurrency> =>
+  fromNullable(
+    staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code),
+  )
+
 const currencyName = (code: CurrencyCode): string =>
-  staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.name ?? code
+  foldMaybe<SupportedCurrency, string>(code, (c) => c.name)(findCurrency(code))
 
 const toCurrencySummary = (code: CurrencyCode): SupportedCurrency => ({
   code,
   name: currencyName(code),
-  symbol: staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.symbol ?? code,
+  symbol: foldMaybe<SupportedCurrency, string>(code, (c) => c.symbol)(findCurrency(code)),
 })
 
 const displayRate = (value: number): string => numberFormat.format(value)

@@ -22,6 +22,8 @@ import type {
 } from '@/shared/dto/conversion'
 import {
   failure,
+  foldMaybe,
+  fromNullable,
   liftResult3,
   mapFailure,
   mapResult,
@@ -29,6 +31,7 @@ import {
   matchResult,
   success,
   type AsyncResult,
+  type Maybe,
   type Result,
 } from '@/shared/fp'
 
@@ -47,13 +50,20 @@ const attribution = {
   sourceUrl: 'https://www.frankfurter.app/',
 }
 
+const findCurrency = (
+  code: CurrencyCode,
+): Maybe<SupportedCurrency> =>
+  fromNullable(
+    staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code),
+  )
+
 const currencyName = (code: CurrencyCode): string =>
-  staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.name ?? code
+  foldMaybe<SupportedCurrency, string>(code, (c) => c.name)(findCurrency(code))
 
 const toCurrencySummary = (code: CurrencyCode): SupportedCurrency => ({
   code,
   name: currencyName(code),
-  symbol: staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.symbol ?? code,
+  symbol: foldMaybe<SupportedCurrency, string>(code, (c) => c.symbol)(findCurrency(code)),
 })
 
 const unsupportedCurrency = (field: 'base' | 'quote', candidate: string): ConversionError => ({

@@ -1,5 +1,5 @@
 import type { RateObservation } from '@/server/domain/rates/rate-derivation'
-import { allTrue, booleanKey, matchMaybe, none, some, type Maybe } from '@/shared/fp'
+import { allTrue, booleanKey, fromNullable, matchMaybe, none, some, type Maybe, withDefault } from '@/shared/fp'
 
 export type LogReturnObservation = {
   readonly fromDate: string
@@ -101,7 +101,11 @@ const periodMovementPercentValue = (
       const first = rates[0]
       const latest = rates[rates.length - 1]
 
-      return (((latest ?? first ?? 0) - (first ?? 0)) / (first ?? 1)) * 100
+      const l = withDefault(withDefault(0)(fromNullable(first)))(fromNullable(latest))
+      const s = withDefault(0)(fromNullable(first))
+      const d = withDefault(1)(fromNullable(first))
+
+      return ((l - s) / d) * 100
     },
   )
 

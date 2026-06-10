@@ -250,12 +250,13 @@ const toFormulaSummary = (entry: FormulaRegistryEntry): FormulaSummary => ({
   accessibleFormulaText: entry.accessibleFormulaText,
 })
 
+const formulaSummaryForMetric = (metricKey: AnalysisMetricKey): ReadonlyArray<FormulaSummary> =>
+  matchMaybe<FormulaRegistryEntry, ReadonlyArray<FormulaSummary>>({
+    none: () => [],
+    some: (entry) => [toFormulaSummary(entry)],
+  })(lookupAnalysisFormula(metricKey))
+
 export const formulaSummariesForMetrics = (
   metricKeys: ReadonlyArray<AnalysisMetricKey>,
 ): ReadonlyArray<FormulaSummary> =>
-  metricKeys.flatMap((metricKey) =>
-    matchMaybe<FormulaRegistryEntry, ReadonlyArray<FormulaSummary>>({
-      none: () => [],
-      some: (entry) => [toFormulaSummary(entry)],
-    })(lookupAnalysisFormula(metricKey)),
-  )
+  metricKeys.flatMap(formulaSummaryForMetric)

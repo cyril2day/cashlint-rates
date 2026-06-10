@@ -48,8 +48,20 @@ const fpRestrictedSyntax = [
     message: 'Logical NOT is not allowed. Use isFalse, complement, or a named negated predicate.',
   },
   {
+    selector: "LogicalExpression[operator='??']",
+    message: 'Nullish coalescing is not allowed. Use foldMaybe or matchMaybe with fromNullable.',
+  },
+  {
+    selector: 'ChainExpression',
+    message: 'Optional chaining is not allowed. Use fromNullable with matchMaybe or chainMaybe.',
+  },
+  {
     selector: "CallExpression[callee.name='chainResult'] CallExpression[callee.name='chainResult']",
     message: 'Nested Result binding is not allowed. Use liftResultN, sequenceResult, traverseResult, or named steps.',
+  },
+  {
+    selector: "CallExpression[callee.property.name='flatMap'] CallExpression[callee.name='matchMaybe']",
+    message: 'Inline filter-map through Maybe inside flatMap is not allowed. Extract a named helper function.',
   },
 ]
 

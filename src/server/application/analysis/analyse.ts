@@ -57,6 +57,7 @@ import {
   booleanKey,
   chainResult,
   failure,
+  foldMaybe,
   fromNullable,
   liftResult2,
   mapFailure,
@@ -71,6 +72,7 @@ import {
   type AsyncResult,
   type Maybe,
   type Result,
+  withDefault,
 } from '@/shared/fp'
 
 type AnalysisDeps = {
@@ -127,13 +129,20 @@ const notEnoughData = 'Not enough usable historical observations for this metric
 const sameCurrencyReason =
   'Same-currency conversion is always 1:1, so historical movement statistics are not applicable.'
 
+const findCurrency = (
+  code: CurrencyCode,
+): Maybe<SupportedCurrency> =>
+  fromNullable(
+    staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code),
+  )
+
 const currencyName = (code: CurrencyCode): string =>
-  staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.name ?? code
+  foldMaybe<SupportedCurrency, string>(code, (c) => c.name)(findCurrency(code))
 
 const toCurrencySummary = (code: CurrencyCode): SupportedCurrency => ({
   code,
   name: currencyName(code),
-  symbol: staticSafeCurrencyCatalogue.currencies.find((currency) => currency.code === code)?.symbol ?? code,
+  symbol: foldMaybe<SupportedCurrency, string>(code, (c) => c.symbol)(findCurrency(code)),
 })
 
 const unsupportedCurrency = (field: 'base' | 'quote', candidate: string): AnalysisError => ({
@@ -604,7 +613,7 @@ const applicableViewModel = (
     },
     metrics,
     dataQuality,
-    insight: dataQuality.messages[0] ?? summary,
+    insight: withDefault(summary)(fromNullable(dataQuality.messages[0])),
     calculationExplanations: analysisFormulaEntries.map(explanation(metrics)),
     caveats,
     attribution,

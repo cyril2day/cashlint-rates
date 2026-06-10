@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { CompareCard } from '@/components/comparison/compare-card'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
-import { fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
+import { chainMaybe, fromNullable, isDefined, matchBoolean, maybeToArray, withDefault } from '@/shared/fp'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,32 +9,27 @@ type ComparePageProps = {
   readonly searchParams: Promise<Readonly<Record<string, string | undefined>>>
 }
 
+const findSupportedCode = (candidate: string) =>
+  fromNullable(
+    defaultSupportedCurrencyCodes.find((code) => code === candidate.toUpperCase()),
+  )
+
 const supportedOrFallback =
   (fallback: string) =>
   (candidate: string | undefined): string =>
-    matchMaybe<string, string>({
-      none: () => fallback,
-      some: (value) =>
-        matchMaybe<string, string>({
-          none: () => fallback,
-          some: (supported) => supported,
-        })(fromNullable(defaultSupportedCurrencyCodes.find((code) => code === value.toUpperCase()))),
-    })(fromNullable(candidate))
+    withDefault(fallback)(
+      chainMaybe(findSupportedCode)(fromNullable(candidate)),
+    )
+
+const toSupportedQuote = (value: string): ReadonlyArray<string> =>
+  maybeToArray(chainMaybe(findSupportedCode)(fromNullable(value)))
 
 const supportedQuotes = (
   params: Readonly<Record<string, string | undefined>>,
 ): ReadonlyArray<string> => {
-  const seededQuotes = [params.quote, ...((params.quotes ?? '').split(','))]
-    .flatMap((value) =>
-      matchMaybe<string, ReadonlyArray<string>>({
-        none: () => [],
-        some: (candidate) =>
-          matchMaybe<string, ReadonlyArray<string>>({
-            none: () => [],
-            some: (supported) => [supported],
-          })(fromNullable(defaultSupportedCurrencyCodes.find((code) => code === candidate.toUpperCase()))),
-      })(fromNullable(value)),
-    )
+  const rawQuotes = withDefault('')(fromNullable(params.quotes))
+  const candidates = [params.quote, ...rawQuotes.split(',')]
+  const seededQuotes = candidates.filter(isDefined).flatMap(toSupportedQuote)
   const uniqueQuotes = Array.from(new Set(seededQuotes))
 
   return matchBoolean<ReadonlyArray<string>>({

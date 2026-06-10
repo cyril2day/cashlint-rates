@@ -4,7 +4,7 @@ import type {
   BogartRateLimitResult,
 } from '@/server/ports/bogart-rate-limiter'
 import { addCalendarDays } from '@/shared/date'
-import { matchBoolean, success, type AsyncResult } from '@/shared/fp'
+import { foldMaybe, fromNullable, matchBoolean, success, type AsyncResult } from '@/shared/fp'
 
 type LimitBucket = {
   readonly day: string
@@ -43,7 +43,7 @@ export const createInMemoryBogartRateLimiter = (): BogartRateLimiter => ({
   consume: (input): AsyncResult<never, BogartRateLimitResult> => {
     const key = bucketKey(input)
     const bucket = buckets.get(key)
-    const currentCount = bucket?.count ?? 0
+    const currentCount = foldMaybe(0, (b: LimitBucket) => b.count)(fromNullable(bucket))
     const result = nextResult(input, currentCount)
 
     buckets.set(key, nextBucket(input, currentCount))
