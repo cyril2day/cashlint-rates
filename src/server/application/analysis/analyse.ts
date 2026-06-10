@@ -55,9 +55,10 @@ import type {
 import type { ISODateStringDto, MaybeDto } from '@/shared/dto/api'
 import {
   booleanKey,
+  chainResult,
   failure,
   fromNullable,
-  liftResult3,
+  liftResult2,
   mapFailure,
   mapMaybe,
   mapResult,
@@ -150,17 +151,30 @@ const parseInputCurrency = (
     parseCurrencyCode(staticSafeCurrencyCatalogue)(candidate),
   )
 
+const dateRangeErrorToAnalysisError = (error: DateRangeError): AnalysisError => ({
+  tag: 'date-range-error',
+  error,
+})
+
+const customDateRangeRequest = (
+  range: Extract<AnalyseDateRangeRequestDto, { readonly _tag: 'Custom' }>,
+): Result<AnalysisError, DateRangeRequest> =>
+  success(customDateRange(range.startDate, range.endDate))
+
+const presetDateRangeRequest = (
+  range: Extract<AnalyseDateRangeRequestDto, { readonly _tag: 'Preset' }>,
+): Result<AnalysisError, DateRangeRequest> => {
+  const parsedPreset = mapFailure(dateRangeErrorToAnalysisError)(parseDateRangePreset(range.preset))
+
+  return mapResult(presetDateRange)(parsedPreset)
+}
+
 const dtoDateRangeRequest = (
   input: AnalyseDateRangeRequestDto,
 ): Result<AnalysisError, DateRangeRequest> =>
   matchDtoTag<AnalyseDateRangeRequestDto, Result<AnalysisError, DateRangeRequest>>({
-    Custom: (range) => success(customDateRange(range.startDate, range.endDate)),
-    Preset: (range) =>
-      mapResult(presetDateRange)(
-        mapFailure((error: DateRangeError): AnalysisError => ({ tag: 'date-range-error', error }))(
-          parseDateRangePreset(range.preset),
-        ),
-      ),
+    Custom: customDateRangeRequest,
+    Preset: presetDateRangeRequest,
   })(input)
 
 const providerErrorToAnalysisError = (error: ProviderError): AnalysisError =>
@@ -208,54 +222,67 @@ const validatedInput = (
   effectiveDateRange,
 })
 
-const validateInput = (deps: AnalysisDeps, input: AnalyseRequestDto): Result<AnalysisError, ValidatedAnalysisInput> =>
-  matchResult<AnalysisError, DateRangeRequest, Result<AnalysisError, ValidatedAnalysisInput>>({
-    failure,
-    success: (dateRangeRequest) => {
-      const resolved = mapFailure((error: DateRangeError): AnalysisError => ({ tag: 'date-range-error', error }))(
-        resolveDateRange(dateRangeRequest, deps.today),
-      )
+const resolveAnalysisDateRange =
+  (deps: AnalysisDeps) =>
+  (dateRangeRequest: DateRangeRequest): Result<AnalysisError, ResolvedDateRange> =>
+    mapFailure(dateRangeErrorToAnalysisError)(resolveDateRange(dateRangeRequest, deps.today))
 
-      return matchResult<AnalysisError, ResolvedDateRange, Result<AnalysisError, ValidatedAnalysisInput>>({
-        failure,
-        success: (range) =>
-          liftResult3((base: CurrencyCode, quote: CurrencyCode, requestedDateRange: ResolvedDateRange) =>
-            validatedInput(base, quote, requestedDateRange, alignDateRange(requestedDateRange, deps.today)))(
-            parseInputCurrency('base', input.base),
-            parseInputCurrency('quote', input.quote),
-            success(range),
-          ),
-      })(resolved)
-    },
-  })(dtoDateRangeRequest(input.dateRange))
+const validatedInputFromResolvedRange =
+  (deps: AnalysisDeps, input: AnalyseRequestDto) =>
+  (range: ResolvedDateRange): Result<AnalysisError, ValidatedAnalysisInput> =>
+    liftResult2((base: CurrencyCode, quote: CurrencyCode) =>
+      validatedInput(base, quote, range, alignDateRange(range, deps.today)))(
+      parseInputCurrency('base', input.base),
+      parseInputCurrency('quote', input.quote),
+    )
+
+const validateInput = (deps: AnalysisDeps, input: AnalyseRequestDto): Result<AnalysisError, ValidatedAnalysisInput> => {
+  const dateRangeRequest = dtoDateRangeRequest(input.dateRange)
+  const resolvedRange = chainResult<AnalysisError, DateRangeRequest, ResolvedDateRange>(
+    resolveAnalysisDateRange(deps),
+  )(dateRangeRequest)
+
+  return chainResult<AnalysisError, ResolvedDateRange, ValidatedAnalysisInput>(
+    validatedInputFromResolvedRange(deps, input),
+  )(resolvedRange)
+}
 
 const rateDerivationErrorToAnalysisError = (error: RateDerivationError): AnalysisError => ({
   tag: 'rate-derivation-unavailable',
   message: error.message,
 })
 
+const historicalRateInput = (input: ValidatedAnalysisInput) => ({
+  base: input.pair.base,
+  quote: input.pair.quote,
+  startDate: input.effectiveDateRange.startDate,
+  endDate: input.effectiveDateRange.endDate,
+})
+
+const deriveHistoricalRateSeries =
+  (pair: CurrencyPair) =>
+  (historicalRates: HistoricalRateData): Result<AnalysisError, DerivedRateSeries> =>
+    mapFailure(rateDerivationErrorToAnalysisError)(
+      deriveRateSeries({
+        requestedPair: pair,
+        historicalRates,
+      }),
+    )
+
+const providerHistoricalRates = (
+  deps: AnalysisDeps,
+  input: ValidatedAnalysisInput,
+): AsyncResult<AnalysisError, HistoricalRateData> =>
+  deps.exchangeRateProvider
+    .getHistoricalRates(historicalRateInput(input))
+    .then(mapFailure(providerErrorToAnalysisError))
+
 const fetchHistoricalRateSeries =
   (deps: AnalysisDeps, input: ValidatedAnalysisInput): AsyncResult<AnalysisError, DerivedRateSeries> =>
-    deps.exchangeRateProvider
-      .getHistoricalRates({
-        base: input.pair.base,
-        quote: input.pair.quote,
-        startDate: input.effectiveDateRange.startDate,
-        endDate: input.effectiveDateRange.endDate,
-      })
-      .then(mapFailure(providerErrorToAnalysisError))
-      .then((result) =>
-        matchResult<AnalysisError, HistoricalRateData, Result<AnalysisError, DerivedRateSeries>>({
-          failure,
-          success: (historicalRates) =>
-            mapFailure(rateDerivationErrorToAnalysisError)(
-              deriveRateSeries({
-                requestedPair: input.pair,
-                historicalRates,
-              }),
-            ),
-        })(result),
-      )
+    providerHistoricalRates(deps, input)
+      .then(chainResult<AnalysisError, HistoricalRateData, DerivedRateSeries>(
+        deriveHistoricalRateSeries(input.pair),
+      ))
 
 const sameCurrencySeries = (pair: CurrencyPair): DerivedRateSeries => ({
   tag: 'not-applicable',

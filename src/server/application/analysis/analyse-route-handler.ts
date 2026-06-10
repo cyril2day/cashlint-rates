@@ -16,11 +16,13 @@ import type {
 } from '@/shared/dto/analysis'
 import type { ApiErrorCodeDto, ApiErrorDto } from '@/shared/dto/api'
 import {
+  chainResult,
   failure,
   fromNullable,
   liftResult2,
   liftResult3,
   mapFailure,
+  mapResult,
   matchMaybe,
   matchResult,
   matchTag,
@@ -31,6 +33,10 @@ import {
 
 type DateRangeTag = AnalyseDateRangeRequestDto['_tag']
 type DateRangePresetDto = Extract<AnalyseDateRangeRequestDto, { readonly _tag: 'Preset' }>['preset']
+type TaggedDateRangeRecord = {
+  readonly record: Readonly<Record<string, unknown>>
+  readonly tag: DateRangeTag
+}
 
 const dateRangeTags: ReadonlyArray<DateRangeTag> = ['Preset', 'Custom']
 const dateRangePresets: ReadonlyArray<DateRangePresetDto> = ['7D', '30D', '90D', '1Y']
@@ -93,10 +99,9 @@ const decodeAllowedString =
 const decodeDateRangeTag = (
   record: Readonly<Record<string, unknown>>,
 ): Result<AnalysisError, DateRangeTag> =>
-  matchResult<AnalysisError, string, Result<AnalysisError, DateRangeTag>>({
-    failure,
-    success: decodeAllowedString(dateRangeTags, 'dateRange._tag must be Preset or Custom.'),
-  })(
+  chainResult<AnalysisError, string, DateRangeTag>(
+    decodeAllowedString(dateRangeTags, 'dateRange._tag must be Preset or Custom.'),
+  )(
     mapFailure(() => dateRangeShapeError('dateRange._tag must be Preset or Custom.'))(
       decodeString(['dateRange', '_tag'])(readField('_tag')(record)),
     ),
@@ -110,16 +115,13 @@ const presetDto = (preset: DateRangePresetDto): AnalyseDateRangeRequestDto => ({
 const decodePreset = (
   record: Readonly<Record<string, unknown>>,
 ): Result<AnalysisError, AnalyseDateRangeRequestDto> =>
-  matchResult<AnalysisError, string, Result<AnalysisError, AnalyseDateRangeRequestDto>>({
-    failure,
-    success: (preset) =>
-      matchResult<AnalysisError, DateRangePresetDto, Result<AnalysisError, AnalyseDateRangeRequestDto>>({
-        failure,
-        success: (allowedPreset) => success(presetDto(allowedPreset)),
-      })(decodeAllowedString(dateRangePresets, 'dateRange.preset must be 7D, 30D, 90D or 1Y.')(preset)),
-  })(
+  mapResult(presetDto)(
+    chainResult<AnalysisError, string, DateRangePresetDto>(
+      decodeAllowedString(dateRangePresets, 'dateRange.preset must be 7D, 30D, 90D or 1Y.'),
+    )(
     mapFailure(() => dateRangeShapeError('dateRange.preset must be 7D, 30D, 90D or 1Y.'))(
       decodeString(['dateRange', 'preset'])(readField('preset')(record)),
+    ),
     ),
   )
 
@@ -152,17 +154,33 @@ const dateRangeDecoder = (
     Preset: decodePreset,
   })[tag]
 
+const decodeDateRangeByTag =
+  (record: Readonly<Record<string, unknown>>) =>
+  (tag: DateRangeTag): Result<AnalysisError, AnalyseDateRangeRequestDto> =>
+    dateRangeDecoder(tag)(record)
+
+const taggedDateRangeRecord = (
+  record: Readonly<Record<string, unknown>>,
+): Result<AnalysisError, TaggedDateRangeRecord> =>
+  mapResult((tag: DateRangeTag) => ({ record, tag }))(decodeDateRangeTag(record))
+
+const decodeTaggedDateRangeRecord = (
+  taggedRecord: TaggedDateRangeRecord,
+): Result<AnalysisError, AnalyseDateRangeRequestDto> =>
+  decodeDateRangeByTag(taggedRecord.record)(taggedRecord.tag)
+
 const decodeDateRange = (
   record: Readonly<Record<string, unknown>>,
-): Result<AnalysisError, AnalyseDateRangeRequestDto> =>
-  matchResult<AnalysisError, Readonly<Record<string, unknown>>, Result<AnalysisError, AnalyseDateRangeRequestDto>>({
-    failure,
-    success: (dateRangeRecord) =>
-      matchResult<AnalysisError, DateRangeTag, Result<AnalysisError, AnalyseDateRangeRequestDto>>({
-        failure,
-        success: (tag) => dateRangeDecoder(tag)(dateRangeRecord),
-      })(decodeDateRangeTag(dateRangeRecord)),
-  })(decodeDateRangeRecord(record))
+): Result<AnalysisError, AnalyseDateRangeRequestDto> => {
+  const dateRangeRecord = decodeDateRangeRecord(record)
+  const taggedRecord = chainResult<AnalysisError, Readonly<Record<string, unknown>>, TaggedDateRangeRecord>(
+    taggedDateRangeRecord,
+  )(dateRangeRecord)
+
+  return chainResult<AnalysisError, TaggedDateRangeRecord, AnalyseDateRangeRequestDto>(
+    decodeTaggedDateRangeRecord,
+  )(taggedRecord)
+}
 
 const analyseRequestDto = (
   base: string,
@@ -182,16 +200,14 @@ const decodeRecordFields = (record: Readonly<Record<string, unknown>>): Result<A
   )
 
 const decodeAnalyseRequest = (payload: unknown): Result<AnalysisError, AnalyseRequestDto> =>
-  matchResult<AnalysisError, Readonly<Record<string, unknown>>, Result<AnalysisError, AnalyseRequestDto>>({
-    failure,
-    success: decodeRecordFields,
-  })(decodeRequestRecord(payload))
+  chainResult<AnalysisError, Readonly<Record<string, unknown>>, AnalyseRequestDto>(decodeRecordFields)(
+    decodeRequestRecord(payload),
+  )
 
 const decodeRequestBody = async (request: Request): AsyncResult<AnalysisError, AnalyseRequestDto> =>
-  matchResult<AnalysisError, unknown, AsyncResult<AnalysisError, AnalyseRequestDto>>({
-    failure: (error) => Promise.resolve(failure(error)),
-    success: (payload) => Promise.resolve(decodeAnalyseRequest(payload)),
-  })(await readJsonBody(request))
+  Promise.resolve(
+    chainResult<AnalysisError, unknown, AnalyseRequestDto>(decodeAnalyseRequest)(await readJsonBody(request)),
+  )
 
 const apiError = (
   code: ApiErrorCodeDto,
