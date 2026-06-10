@@ -210,23 +210,23 @@ const toResolvedCustomDateRange = (range: ParsedCustomDateRange): ResolvedDateRa
 const resolveCustomDateRange = (
   request: CustomDateRangeRequest,
   today: ISODateStringDto,
-): Result<DateRangeError, ResolvedDateRange> =>
-  mapResult(toResolvedCustomDateRange)(
-    chainResult<DateRangeError, ParsedCustomDateRange, ParsedCustomDateRange>(
-      validateEndNotFuture(today),
-    )(
-      chainResult<DateRangeError, ParsedCustomDateRange, ParsedCustomDateRange>(
-        validateStartNotFuture(today),
-      )(
-        chainResult<DateRangeError, ParsedCustomDateRange, ParsedCustomDateRange>(validateChronology)(
-          liftResult2(parsedCustomDateRange)(
-            parseIsoDate('startDate')(request.startDate),
-            parseIsoDate('endDate')(request.endDate),
-          ),
-        ),
-      ),
-    ),
+): Result<DateRangeError, ResolvedDateRange> => {
+  const parsedRange = liftResult2(parsedCustomDateRange)(
+    parseIsoDate('startDate')(request.startDate),
+    parseIsoDate('endDate')(request.endDate),
   )
+  const chronologicalRange = chainResult<DateRangeError, ParsedCustomDateRange, ParsedCustomDateRange>(
+    validateChronology,
+  )(parsedRange)
+  const startSafeRange = chainResult<DateRangeError, ParsedCustomDateRange, ParsedCustomDateRange>(
+    validateStartNotFuture(today),
+  )(chronologicalRange)
+  const endSafeRange = chainResult<DateRangeError, ParsedCustomDateRange, ParsedCustomDateRange>(
+    validateEndNotFuture(today),
+  )(startSafeRange)
+
+  return mapResult(toResolvedCustomDateRange)(endSafeRange)
+}
 
 const resolveValidDateRange = (
   request: DateRangeRequest,
