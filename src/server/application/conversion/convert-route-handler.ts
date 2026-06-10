@@ -9,6 +9,7 @@ import type { ExchangeRateProvider } from '@/server/ports/rate-provider'
 import type { ApiErrorDto } from '@/shared/dto/api'
 import type { ConvertRequestDto, ConversionViewModelDto } from '@/shared/dto/conversion'
 import {
+  chainResult,
   failure,
   liftResult3,
   mapFailure,
@@ -86,10 +87,9 @@ const decodeRecordFields = (record: Readonly<Record<string, unknown>>): Result<C
   )
 
 const decodeConvertRequest = (payload: unknown): Result<ConversionError, ConvertRequestDto> =>
-  matchResult<ConversionError, Readonly<Record<string, unknown>>, Result<ConversionError, ConvertRequestDto>>({
-    failure: (error) => failure(error),
-    success: decodeRecordFields,
-  })(decodeRequestRecord(payload))
+  chainResult<ConversionError, Readonly<Record<string, unknown>>, ConvertRequestDto>(decodeRecordFields)(
+    decodeRequestRecord(payload),
+  )
 
 const apiError = (
   code: ApiErrorDto['code'],
@@ -136,10 +136,9 @@ const mapConversionErrorToApiError = (error: ConversionError): ApiErrorDto =>
   })(error)
 
 const decodeRequestBody = async (request: Request): AsyncResult<ConversionError, ConvertRequestDto> =>
-  matchResult<ConversionError, unknown, AsyncResult<ConversionError, ConvertRequestDto>>({
-    failure: (error) => Promise.resolve(failure(error)),
-    success: (payload) => Promise.resolve(decodeConvertRequest(payload)),
-  })(await readJsonBody(request))
+  Promise.resolve(
+    chainResult<ConversionError, unknown, ConvertRequestDto>(decodeConvertRequest)(await readJsonBody(request)),
+  )
 
 const runConversion =
   (exchangeRateProvider: ExchangeRateProvider) =>
