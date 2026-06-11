@@ -55,16 +55,16 @@ const yLabelCharacterWidth = 7
 const maximumPlotLeftShare = 0.34
 
 const colours: ReadonlyArray<string> = [
-  '#155eef',
-  '#b42318',
-  '#027a48',
-  '#7a5af8',
-  '#b54708',
-  '#088ab2',
-  '#c11574',
-  '#4e5ba6',
-  '#039855',
-  '#d444f1',
+  'var(--cr-chart-series-1)',
+  'var(--cr-chart-series-2)',
+  'var(--cr-chart-series-3)',
+  'var(--cr-chart-series-4)',
+  'var(--cr-chart-series-5)',
+  'var(--cr-chart-series-6)',
+  'var(--cr-chart-series-7)',
+  'var(--cr-chart-series-8)',
+  'var(--cr-chart-series-9)',
+  'var(--cr-chart-series-10)',
 ]
 
 const allPoints = (
@@ -142,7 +142,7 @@ const renderSeries =
   (series: IndexedComparisonSeries, index: number): IndexedComparisonRenderedSeries => {
     const points = series.points.map(renderPoint(plotLeft, xScale, yScale))
     const colour = matchMaybe<string, string>({
-      none: () => '#155eef',
+      none: () => 'var(--cr-chart-series-1)',
       some: (seriesColour) => seriesColour,
     })(fromNullable(colours[index % colours.length]))
 
