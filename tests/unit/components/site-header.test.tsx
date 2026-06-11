@@ -4,6 +4,9 @@ import { SiteHeader } from '@/app/site-header'
 
 let currentPathname = '/'
 
+const iconCount = (container: HTMLElement): number =>
+  container.querySelectorAll('svg.site-header__icon[aria-hidden="true"]').length
+
 vi.mock('next/navigation', () => ({
   usePathname: () => currentPathname,
 }))
@@ -16,7 +19,7 @@ afterEach(() => {
 
 describe('SiteHeader', () => {
   it('renders primary navigation, theme, and GitHub controls', () => {
-    render(<SiteHeader />)
+    const { container } = render(<SiteHeader />)
 
     expect(screen.getByRole('link', { name: 'Cashlint Rates' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Analyse' })).toHaveAttribute('href', '/analyse')
@@ -26,6 +29,7 @@ describe('SiteHeader', () => {
       'href',
       'https://github.com/cyril2day/cashlint-rates',
     )
+    expect(iconCount(container)).toBe(3)
   })
 
   it('shows a dashboard back-link away from the home page', () => {
@@ -55,12 +59,13 @@ describe('SiteHeader', () => {
   })
 
   it('persists theme changes on the html element and localStorage', () => {
-    render(<SiteHeader />)
+    const { container } = render(<SiteHeader />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Use dark theme' }))
 
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(window.localStorage.getItem('cashlint-theme')).toBe('dark')
     expect(screen.getByRole('button', { name: 'Use light theme' })).toBeInTheDocument()
+    expect(iconCount(container)).toBe(3)
   })
 })
