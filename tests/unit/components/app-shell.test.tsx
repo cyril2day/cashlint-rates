@@ -54,8 +54,8 @@ describe('AppShell', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Ask Bogart' }))
 
     expect(await screen.findByRole('dialog', { name: 'Bogart' })).toHaveClass('bogart-modal__panel')
-    expect(screen.getByText('Context: Current page')).toHaveClass('bogart-modal__context')
-    expect(screen.getByPlaceholderText('Ask about this result...')).toBeInTheDocument()
+    expect(screen.getByText('Context: Analyse · USD/GBP · 2026-06-02 to 2026-06-09')).toHaveClass('bogart-modal__context')
+    expect(screen.getByPlaceholderText('Ask about this chart, formula, or result...')).toBeInTheDocument()
     expect(document.body.style.overflow).toBe('hidden')
     expect(container.querySelector('.app-shell')).toHaveAttribute('inert')
     expect(container.querySelector('.app-shell')).toHaveAttribute('aria-hidden', 'true')
@@ -117,7 +117,7 @@ describe('AppShell', () => {
 
     const closeButton = await screen.findByRole('button', { name: 'Close' })
     const input = screen.getByLabelText('Question')
-    const finalSuggestion = screen.getByRole('button', { name: 'Summarise these statistics' })
+    const finalSuggestion = screen.getByRole('button', { name: 'Why is this metric unavailable?' })
 
     await waitFor(() => {
       expect(closeButton).toHaveFocus()
@@ -156,12 +156,12 @@ describe('AppShell', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Ask Bogart' }))
     fireEvent.change(screen.getByLabelText('Question'), {
-      target: { value: 'Explain this result' },
+      target: { value: 'Explain this chart' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => {
-      expect(screen.getAllByText('Explain this result')).toHaveLength(2)
+      expect(screen.getAllByText('Explain this chart')).toHaveLength(2)
     })
     expect(await screen.findByText('This result compares the latest reference-rate movement.')).toBeInTheDocument()
     expect(screen.getByText('9 Bogart questions left today.')).toBeInTheDocument()
