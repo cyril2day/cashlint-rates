@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { BogartResultContextDto } from '@/shared/dto/bogart'
-import { fromNullable, matchBoolean, matchMaybe, none, some } from '@/shared/fp'
+import { allTrue, fromNullable, matchBoolean, matchMaybe, none, some } from '@/shared/fp'
 import type { Maybe } from '@/shared/fp'
 import { BogartChat } from './bogart-chat'
 import { useBogartFocusTrap } from './bogart-focus-trap'
@@ -36,11 +36,21 @@ const closeDelay = (): number =>
 
 const withBodyScrollLocked = (): (() => void) => {
   const previousOverflow = document.body.style.overflow
+  const previousPaddingRight = document.body.style.paddingRight
+  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
 
   document.body.style.overflow = 'hidden'
+  matchBoolean<undefined>({
+    false: () => undefined,
+    true: () => {
+      document.body.style.paddingRight = `${scrollbarWidth.toString()}px`
+      return undefined
+    },
+  })(allTrue([scrollbarWidth > 0, document.documentElement.clientWidth > 0]))
 
   return () => {
     document.body.style.overflow = previousOverflow
+    document.body.style.paddingRight = previousPaddingRight
   }
 }
 
