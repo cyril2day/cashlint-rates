@@ -41,6 +41,10 @@ describe('analyse application service', () => {
     expect(viewModel.metrics.latestReferenceRate.rawValue).toEqual({ _tag: 'Just', value: 0.81 })
     expect(viewModel.dataQuality.status).toBe('complete')
     expect(viewModel.aiContextSeed.mode).toBe('pair-analysis')
+    expect(viewModel.calculationExplanations.find((entry) => entry.formulaKey === 'period-movement')?.workedSolutionLatex).toEqual({
+      _tag: 'Just',
+      value: String.raw`\frac{0.81 - 0.79}{0.79} \times 100 = 2.53\%`,
+    })
   })
 
   it('returns same-currency analysis without calling the provider', async () => {

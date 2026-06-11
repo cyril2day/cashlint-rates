@@ -50,7 +50,7 @@ describe('formula registry domain', () => {
 
     expect(entry.latex).toBe(String.raw`\frac{r_n - r_1}{r_1} \times 100`)
     expect(entry.accessibleFormulaText).toBe(
-      'Period movement equals latest rate minus first rate, divided by first rate, multiplied by one hundred.',
+      'Period movement equals latest rate minus first rate, divided by first rate, times 100.',
     )
   })
 
@@ -65,15 +65,15 @@ describe('formula registry domain', () => {
         formulaKey: 'latest-reference-rate',
         metricKey: 'latest-reference-rate',
         title: 'Latest reference rate',
-        summary: 'Latest reference rate uses the final cleaned observation in the selected period.',
-        accessibleFormulaText: 'Latest reference rate equals the final cleaned rate observation.',
+        summary: 'Latest reference rate uses the last cleaned observation in the selected period.',
+        accessibleFormulaText: 'Latest reference rate equals the last cleaned rate observation.',
       },
       {
         formulaKey: 'typical-movement',
         metricKey: 'typical-movement',
         title: 'Typical movement',
-        summary: 'Typical movement is the sample standard deviation of successive log returns, shown as a percentage.',
-        accessibleFormulaText: 'Typical movement equals the sample standard deviation of log returns, multiplied by one hundred.',
+        summary: 'Typical movement shows the usual proportional movement between provider observations.',
+        accessibleFormulaText: 'Typical movement equals the sample standard deviation of log returns, times 100.',
       },
     ])
   })

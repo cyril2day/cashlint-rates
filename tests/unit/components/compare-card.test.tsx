@@ -173,7 +173,7 @@ describe('CompareCard', () => {
     expect(within(screen.getByLabelText('Selected quote currencies')).getByText('GBP')).toBeInTheDocument()
   })
 
-  it('submits input and displays rankings, chart, and comparison table', async () => {
+  it('submits input and displays the chart and lean comparison table', async () => {
     vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve(
         new Response(JSON.stringify({ _tag: 'ApiSuccess', data: successViewModel }), {
@@ -186,13 +186,16 @@ describe('CompareCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Compare' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Most stable')).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'USD indexed comparison' })).toHaveClass('cr-chart-panel')
     })
     expect(screen.getByRole('region', { name: 'USD indexed comparison' })).toHaveClass('cr-chart-panel')
-    expect(screen.getByText('Chart ready')).toHaveClass('cr-chart-panel__status')
+    expect(screen.queryByText('Chart ready')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Indexed comparison for USD against 2 quotes.')).toBeInTheDocument()
     expect(screen.getByText('USD indexed comparison rows')).toBeInTheDocument()
-    expect(screen.getAllByText('Included in rankings')).toHaveLength(2)
+    expect(screen.queryByText('Most stable')).not.toBeInTheDocument()
+    expect(screen.queryByText('Most variable')).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Ranking state' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Data quality' })).not.toBeInTheDocument()
   })
 
   it('keeps partial rows visible when no quote is rankable', async () => {
@@ -207,9 +210,12 @@ describe('CompareCard', () => {
     render(<CompareCard currencyCodes={currencyCodes} initialBase="USD" initialQuotes={['EUR']} />)
     fireEvent.click(screen.getByRole('button', { name: 'Compare' }))
 
-    expect(await screen.findByText('No rankable data')).toBeInTheDocument()
-    expect(screen.getAllByText('partial data')).toHaveLength(2)
-    expect(screen.getByText('Some provider observations were excluded because they were missing or invalid.')).toBeInTheDocument()
+    expect(await screen.findByText('Not enough usable historical observations.')).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'EUR' })).toBeInTheDocument()
+    expect(screen.queryByText('No rankable data')).not.toBeInTheDocument()
+    expect(screen.queryByText('partial data')).not.toBeInTheDocument()
+    expect(screen.queryByText('Per-quote data quality')).not.toBeInTheDocument()
+    expect(screen.queryByText('Some provider observations were excluded because they were missing or invalid.')).not.toBeInTheDocument()
   })
 
   it('shows comparison API errors', async () => {
