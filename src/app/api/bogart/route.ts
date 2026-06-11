@@ -12,8 +12,8 @@ const aiProvider: AIExplanationProvider = matchMaybe<string, AIExplanationProvid
   some: (apiKey) => createGoogleAIBogartProvider({
     apiKey,
     model: 'gemini-2.5-flash',
-    temperature: 0.2,
-    maxOutputTokens: 900,
+    temperature: 0.15,
+    maxOutputTokens: 1200,
   }),
 })(fromNullable(process.env.GOOGLE_API_KEY))
 
