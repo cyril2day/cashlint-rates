@@ -5,18 +5,25 @@ import { AnalysisChartPanel } from './analysis-chart-panel'
 import { AnalysisDataQualityPanel } from './analysis-data-quality-panel'
 import { AnalysisFormulaDisclosures } from './analysis-formula-disclosures'
 import { AnalysisMetricGrid } from './analysis-metric-grid'
-import { AnalysisResultHeader } from './analysis-result-header'
-import { BogartPanel } from '@/components/bogart'
+import { useBogartResultAvailability } from '@/components/bogart'
 
 export function AnalysisResult({ result }: { readonly result: PairAnalysisViewModelDto }) {
+  useBogartResultAvailability(result.aiContextSeed)
+
   return (
-    <section className="analysis-result" aria-live="polite">
-      <AnalysisResultHeader result={result} />
-      <AnalysisMetricGrid metrics={result.metrics} />
-      <AnalysisChartPanel chart={result.chart} />
-      <AnalysisDataQualityPanel dataQuality={result.dataQuality} />
-      <AnalysisFormulaDisclosures explanations={result.calculationExplanations} />
-      <BogartPanel context={result.aiContextSeed} />
-    </section>
+    <>
+      <section className="analyse-layout__chart" aria-live="polite">
+        <AnalysisChartPanel chart={result.chart} />
+      </section>
+      <section className="analyse-layout__full" aria-label="Analysis metrics">
+        <AnalysisMetricGrid metrics={result.metrics} />
+      </section>
+      <section className="analyse-layout__full" aria-label="Data quality">
+        <AnalysisDataQualityPanel dataQuality={result.dataQuality} />
+      </section>
+      <section className="analyse-layout__full" aria-label="Formula details">
+        <AnalysisFormulaDisclosures explanations={result.calculationExplanations} />
+      </section>
+    </>
   )
 }

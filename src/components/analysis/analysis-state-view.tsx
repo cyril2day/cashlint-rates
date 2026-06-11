@@ -56,11 +56,35 @@ export const analyseStateReducer = (
     }),
   })(action)
 
+function AnalysisStatusPanel({
+  children,
+}: {
+  readonly children: ReactNode
+}) {
+  return (
+    <section className="analyse-layout__status" aria-live="polite">
+      {children}
+    </section>
+  )
+}
+
 export function AnalysisStateView({ state }: { readonly state: AnalyseState }) {
   return matchTag<AnalyseState, ReactNode>({
-    failure: (failureState) => <AnalysisError error={failureState.error} />,
-    initial: () => <p className="converter-card__note">Choose a pair and date range to analyse.</p>,
-    loading: () => <p className="converter-card__note" role="status">Loading historical reference rates.</p>,
+    failure: (failureState) => (
+      <AnalysisStatusPanel>
+        <AnalysisError error={failureState.error} />
+      </AnalysisStatusPanel>
+    ),
+    initial: () => (
+      <AnalysisStatusPanel>
+        <p className="converter-card__note">Choose a pair and date range to analyse.</p>
+      </AnalysisStatusPanel>
+    ),
+    loading: () => (
+      <AnalysisStatusPanel>
+        <p className="converter-card__note" role="status">Loading historical reference rates.</p>
+      </AnalysisStatusPanel>
+    ),
     success: (successState) => <AnalysisResult result={successState.result} />,
   })(state)
 }

@@ -57,38 +57,36 @@ export function AnalyseCard({
   const loading = state.tag === 'loading'
 
   return (
-    <form
-      className="converter-card analysis-card"
-      aria-label="Pair analysis"
-      onSubmit={(event) => {
-        event.preventDefault()
-        submitInput(dispatch)(
-          toAnalyseRequest(base, quote, dateRangeChoice, { startDate, endDate }),
-        )
-      }}
-    >
-      <div className="converter-card__header">
-        <h2>Analyse pair</h2>
-        <p>Review historical reference-rate movement for one currency pair.</p>
-      </div>
-      <AnalysisCurrencyFields
-        base={base}
-        currencyCodes={currencyCodes}
-        onBaseChange={setBase}
-        onQuoteChange={setQuote}
-        quote={quote}
-      />
-      <AnalysisDateRangeFields
-        customRange={{ startDate, endDate }}
-        dateRangeChoice={dateRangeChoice}
-        setDateRangeChoice={setDateRangeChoice}
-        setEndDate={setEndDate}
-        setStartDate={setStartDate}
-      />
-      <button className="button" disabled={loading} type="submit">
-        Analyse
-      </button>
+    <main className="analyse-layout">
+      <form
+        className="converter-card analysis-card analyse-layout__form"
+        aria-label="Pair analysis"
+        onSubmit={(event) => {
+          event.preventDefault()
+          submitInput(dispatch)(
+            toAnalyseRequest(base, quote, dateRangeChoice, { startDate, endDate }),
+          )
+        }}
+      >
+        <AnalysisCurrencyFields
+          base={base}
+          currencyCodes={currencyCodes}
+          onBaseChange={setBase}
+          onQuoteChange={setQuote}
+          quote={quote}
+        />
+        <AnalysisDateRangeFields
+          customRange={{ startDate, endDate }}
+          dateRangeChoice={dateRangeChoice}
+          setDateRangeChoice={setDateRangeChoice}
+          setEndDate={setEndDate}
+          setStartDate={setStartDate}
+        />
+        <button className="button" disabled={loading} type="submit">
+          Analyse
+        </button>
+      </form>
       <AnalysisStateView state={state} />
-    </form>
+    </main>
   )
 }

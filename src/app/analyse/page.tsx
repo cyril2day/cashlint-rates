@@ -26,19 +26,10 @@ export default async function AnalysePage({ searchParams }: AnalysePageProps) {
   const initialQuote = supportedOrFallback('GBP')(params.quote)
 
   return (
-    <main>
-      <section className="section">
-        <p className="section__eyebrow">Pair analysis</p>
-        <h1>Analyse an exchange-rate pair</h1>
-        <p>
-          Inspect historical reference-rate movement, data quality, and the formulas behind each metric.
-        </p>
-        <AnalyseCard
-          currencyCodes={defaultSupportedCurrencyCodes}
-          initialBase={initialBase}
-          initialQuote={initialQuote}
-        />
-      </section>
-    </main>
+    <AnalyseCard
+      currencyCodes={defaultSupportedCurrencyCodes}
+      initialBase={initialBase}
+      initialQuote={initialQuote}
+    />
   )
 }
