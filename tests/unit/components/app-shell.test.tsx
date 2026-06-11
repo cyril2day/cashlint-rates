@@ -61,6 +61,20 @@ describe('AppShell', () => {
     expect(container.querySelector('.app-shell')).toHaveAttribute('aria-hidden', 'true')
   })
 
+  it('opens Bogart while the dark theme is active', async () => {
+    render(
+      <AppShell>
+        <ResultContent />
+      </AppShell>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use dark theme' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ask Bogart' }))
+
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(await screen.findByRole('dialog', { name: 'Bogart' })).toHaveClass('bogart-modal__panel')
+  })
+
   it('closes Bogart with Escape and returns focus to the button', async () => {
     const { container } = render(
       <AppShell>

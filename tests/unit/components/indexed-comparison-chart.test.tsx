@@ -42,6 +42,8 @@ describe('IndexedComparisonChart', () => {
     const model = buildIndexedComparisonChartModel(result.value, 720, 240)
 
     expect(model.series).toHaveLength(2)
+    expect(model.series[0]?.colour).toBe('var(--cr-chart-series-1)')
+    expect(model.series[1]?.colour).toBe('var(--cr-chart-series-2)')
     expect(model.series[0]?.path).toContain('M')
     expect(model.yTicks.length).toBeGreaterThan(0)
   })

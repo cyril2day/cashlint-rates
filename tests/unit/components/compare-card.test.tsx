@@ -171,6 +171,18 @@ describe('CompareCard', () => {
     expect(screen.getByLabelText('Base')).toHaveValue('USD')
     expect(within(screen.getByLabelText('Selected quote currencies')).getByText('EUR')).toBeInTheDocument()
     expect(within(screen.getByLabelText('Selected quote currencies')).getByText('GBP')).toBeInTheDocument()
+    expect(screen.getByText('Choose a base, quote currencies, and date range to compare.')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'USD indexed comparison' })).not.toBeInTheDocument()
+  })
+
+  it('shows the loading state while comparison is pending', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)))
+
+    render(<CompareCard currencyCodes={currencyCodes} initialBase="USD" initialQuotes={['EUR', 'GBP']} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Compare' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading comparison reference rates.')
+    expect(screen.getByRole('button', { name: 'Compare' })).toBeDisabled()
   })
 
   it('submits input and displays the chart and lean comparison table', async () => {
@@ -191,6 +203,8 @@ describe('CompareCard', () => {
     expect(screen.getByRole('region', { name: 'USD indexed comparison' })).toHaveClass('cr-chart-panel')
     expect(screen.queryByText('Chart ready')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Indexed comparison for USD against 2 quotes.')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Period movement by quote' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Period movement by quote' })).toBeInTheDocument()
     expect(screen.getByText('USD indexed comparison rows')).toBeInTheDocument()
     expect(screen.queryByText('Most stable')).not.toBeInTheDocument()
     expect(screen.queryByText('Most variable')).not.toBeInTheDocument()

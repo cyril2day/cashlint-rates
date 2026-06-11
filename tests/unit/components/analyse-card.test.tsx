@@ -248,7 +248,8 @@ describe('AnalyseCard', () => {
     })
     expect(screen.getByText('Need at least two cleaned observations to plot.')).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Analysis summary' })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Data quality' })).toHaveTextContent('No usable historical observations were returned for the selected period.')
+    expect(screen.queryByRole('region', { name: 'Data quality' })).not.toBeInTheDocument()
+    expect(screen.getByRole('form', { name: 'Pair analysis' })).toHaveTextContent('No usable historical observations were returned for the selected period.')
     expect(screen.queryByRole('table', { name: 'EUR/JPY cleaned observations' })).not.toBeInTheDocument()
   })
 
