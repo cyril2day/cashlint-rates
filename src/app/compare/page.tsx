@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { CompareCard } from '@/components/comparison/compare-card'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
 import { chainMaybe, fromNullable, isDefined, matchBoolean, maybeToArray, withDefault } from '@/shared/fp'
@@ -44,12 +43,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   const initialQuotes = supportedQuotes(params)
 
   return (
-    <main className="app-shell">
-      <header className="site-header">
-        <Link className="site-header__brand" href="/">
-          Cashlint Rates
-        </Link>
-      </header>
+    <main>
       <section className="section">
         <p className="section__eyebrow">Comparison</p>
         <h1>Compare up to ten quote currencies</h1>

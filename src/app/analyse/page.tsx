@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { AnalyseCard } from '@/components/analysis/analyse-card'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
 import { fromNullable, matchMaybe } from '@/shared/fp'
@@ -27,12 +26,7 @@ export default async function AnalysePage({ searchParams }: AnalysePageProps) {
   const initialQuote = supportedOrFallback('GBP')(params.quote)
 
   return (
-    <main className="app-shell">
-      <header className="site-header">
-        <Link className="site-header__brand" href="/">
-          Cashlint Rates
-        </Link>
-      </header>
+    <main>
       <section className="section">
         <p className="section__eyebrow">Pair analysis</p>
         <h1>Analyse an exchange-rate pair</h1>

@@ -10,7 +10,7 @@ import { matchConvertClientResult, postConversionRequest } from './convert-api-c
 import { ConverterError } from './converter-error'
 import { ConverterResult } from './converter-result'
 
-type ConverterState =
+export type ConverterState =
   | {
       readonly tag: 'initial'
     }
@@ -26,7 +26,7 @@ type ConverterState =
       readonly result: ConversionViewModelDto
     }
 
-type ConverterAction =
+export type ConverterAction =
   | {
       readonly tag: 'submit'
     }
@@ -39,9 +39,9 @@ type ConverterAction =
       readonly result: ConversionViewModelDto
     }
 
-const initialState: ConverterState = { tag: 'initial' }
+export const initialConverterState: ConverterState = { tag: 'initial' }
 
-const reducer = (_state: ConverterState, action: ConverterAction): ConverterState =>
+export const converterReducer = (_state: ConverterState, action: ConverterAction): ConverterState =>
   matchTag<ConverterAction, ConverterState>({
     failure: (failureAction) => ({
       tag: 'failure',
@@ -71,7 +71,7 @@ const clientValidationError: ApiFailureDto['error'] = {
   details: [],
 }
 
-const toRequest = (
+export const toConverterRequest = (
   form: HTMLFormElement,
   base: string,
   quote: string,
@@ -106,7 +106,7 @@ const dispatchClientResult =
     return undefined
   }
 
-const submitInput =
+export const submitConverterInput =
   (dispatch: Dispatch<ConverterAction>) =>
   (input: ConvertRequestDto): void => {
     matchBoolean<undefined>({
@@ -122,7 +122,7 @@ const submitInput =
     })(isPositiveAmount(input))
   }
 
-const renderState = (state: ConverterState): ReactNode =>
+export const ConverterStateView = ({ state }: { readonly state: ConverterState }) =>
   matchTag<ConverterState, ReactNode>({
     failure: (failureState) => <ConverterError error={failureState.error} />,
     initial: () => <p className="converter-card__note">Enter an amount and choose two currencies.</p>,
@@ -130,25 +130,32 @@ const renderState = (state: ConverterState): ReactNode =>
     success: (successState) => <ConverterResult result={successState.result} />,
   })(state)
 
-export function ConverterCard() {
-  const [state, dispatch] = useReducer(reducer, initialState)
-  const [base, setBase] = useState('USD')
-  const [quote, setQuote] = useState('GBP')
-  const loading = state.tag === 'loading'
+type ConverterCardProps = {
+  readonly base: string
+  readonly quote: string
+  readonly loading: boolean
+  readonly onBaseChange: (base: string) => void
+  readonly onQuoteChange: (quote: string) => void
+  readonly onSubmit: (form: HTMLFormElement) => void
+}
 
+export function ConverterCard({
+  base,
+  quote,
+  loading,
+  onBaseChange,
+  onQuoteChange,
+  onSubmit,
+}: ConverterCardProps) {
   return (
     <form
       className="converter-card"
       aria-label="Currency converter"
       onSubmit={(event) => {
         event.preventDefault()
-        submitInput(dispatch)(toRequest(event.currentTarget, base, quote))
+        onSubmit(event.currentTarget)
       }}
     >
-      <div className="converter-card__header">
-        <h2>Convert currency</h2>
-        <p>Convert an amount using the latest available reference rate.</p>
-      </div>
       <label className="field" htmlFor="converter-amount">
         <span className="field__label">Amount</span>
         <input
@@ -171,7 +178,7 @@ export function ConverterCard() {
             id="converter-base"
             name="base"
             onChange={(event) => {
-              setBase(event.currentTarget.value)
+              onBaseChange(event.currentTarget.value)
             }}
             value={base}
           >
@@ -188,7 +195,7 @@ export function ConverterCard() {
             id="converter-quote"
             name="quote"
             onChange={(event) => {
-              setQuote(event.currentTarget.value)
+              onQuoteChange(event.currentTarget.value)
             }}
             value={quote}
           >
@@ -202,8 +209,8 @@ export function ConverterCard() {
         className="button button--secondary"
         type="button"
         onClick={() => {
-          setBase(quote)
-          setQuote(base)
+          onBaseChange(quote)
+          onQuoteChange(base)
         }}
       >
         Swap
@@ -211,7 +218,31 @@ export function ConverterCard() {
       <button className="button" disabled={loading} type="submit">
         Convert
       </button>
-      {renderState(state)}
     </form>
+  )
+}
+
+export function ConverterDashboard() {
+  const [state, dispatch] = useReducer(converterReducer, initialConverterState)
+  const [base, setBase] = useState('USD')
+  const [quote, setQuote] = useState('GBP')
+  const loading = state.tag === 'loading'
+
+  return (
+    <main className="home-layout">
+      <ConverterCard
+        base={base}
+        loading={loading}
+        onBaseChange={setBase}
+        onQuoteChange={setQuote}
+        onSubmit={(form) => {
+          submitConverterInput(dispatch)(toConverterRequest(form, base, quote))
+        }}
+        quote={quote}
+      />
+      <div className="home-layout__result">
+        <ConverterStateView state={state} />
+      </div>
+    </main>
   )
 }

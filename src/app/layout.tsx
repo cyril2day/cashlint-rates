@@ -3,10 +3,11 @@ import 'katex/dist/katex.min.css'
 import 'pristine-charts/line-chart.css'
 import 'pristine-charts/chart-error.css'
 import './styles/main.scss'
+import { AppShell } from './app-shell'
 
 export const metadata: Metadata = {
   title: 'Cashlint Rates',
-  description: 'Educational currency conversion and exchange-rate analysis.',
+  description: 'Currency conversion, exchange-rate analysis, and comparison using reference data.',
 }
 
 const themeScript = `
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   )

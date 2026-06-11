@@ -110,7 +110,11 @@ select {
 .app-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 24px 0 64px;
+  padding: 24px 0 48px;
+}
+
+.app-shell__content {
+  min-width: 0;
 }
 
 .site-header {
@@ -135,20 +139,22 @@ select {
   font-size: 0.94rem;
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.72fr);
-  gap: 28px;
-  align-items: center;
-  min-height: 520px;
+.site-footer {
+  border-top: 1px solid var(--clr-border);
+  margin-top: 48px;
+  padding-top: 16px;
+  color: var(--clr-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
-.hero__copy {
+.home-layout {
   display: grid;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
-.hero__eyebrow,
 .section__eyebrow {
   margin: 0;
   color: var(--clr-accent);
@@ -186,20 +192,11 @@ p {
 .converter-card {
   display: grid;
   gap: 18px;
-  padding: 22px;
+  padding: 20px;
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
   background: var(--clr-surface);
   box-shadow: var(--shadow-soft);
-}
-
-.converter-card__header {
-  display: grid;
-  gap: 8px;
-}
-
-.converter-card__header h2 {
-  font-size: 1.5rem;
 }
 
 .converter-card__grid {
@@ -769,9 +766,8 @@ p {
     padding-bottom: 28px;
   }
 
-  .hero {
+  .home-layout {
     grid-template-columns: 1fr;
-    min-height: auto;
   }
 
   h1 {

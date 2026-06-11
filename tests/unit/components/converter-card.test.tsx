@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ConverterCard } from '@/components/conversion/converter-card'
+import { ConverterDashboard } from '@/components/conversion/converter-card'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
 
 const successViewModel: ConversionViewModelDto = {
@@ -84,7 +84,7 @@ afterEach(() => {
 
 describe('ConverterCard', () => {
   it('renders the initial state', () => {
-    render(<ConverterCard />)
+    render(<ConverterDashboard />)
 
     expect(screen.getByRole('form', { name: 'Currency converter' })).toBeInTheDocument()
     expect(screen.getByText('Enter an amount and choose two currencies.')).toBeInTheDocument()
@@ -99,7 +99,7 @@ describe('ConverterCard', () => {
       ),
     ))
 
-    render(<ConverterCard />)
+    render(<ConverterDashboard />)
     fireEvent.click(screen.getByRole('button', { name: 'Convert' }))
 
     await waitFor(() => {
@@ -112,7 +112,7 @@ describe('ConverterCard', () => {
   })
 
   it('swaps the selected currencies', () => {
-    render(<ConverterCard />)
+    render(<ConverterDashboard />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Swap' }))
 
@@ -121,7 +121,7 @@ describe('ConverterCard', () => {
   })
 
   it('shows client-side validation for invalid amounts', async () => {
-    render(<ConverterCard />)
+    render(<ConverterDashboard />)
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '-5' } })
     fireEvent.click(screen.getByRole('button', { name: 'Convert' }))
 
