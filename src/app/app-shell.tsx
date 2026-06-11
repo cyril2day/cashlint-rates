@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import type { ReactNode } from 'react'
 import { BogartButton, BogartProvider } from '@/components/bogart'
+import { SiteHeader } from './site-header'
 
 type AppShellProps = {
   readonly children: ReactNode
@@ -12,15 +12,7 @@ export function AppShell({ children }: AppShellProps) {
     <Suspense>
       <BogartProvider>
         <div className="app-shell">
-          <header className="site-header">
-            <Link className="site-header__brand" href="/">
-              Cashlint Rates
-            </Link>
-            <nav className="site-header__nav" aria-label="Primary navigation">
-              <Link href="/analyse">Analyse</Link>
-              <Link href="/compare">Compare</Link>
-            </nav>
-          </header>
+          <SiteHeader />
           <div className="app-shell__content">{children}</div>
           <footer className="site-footer">
             Reference rates from Frankfurter API v2 (ECB data). Cashlint Rates is for education and

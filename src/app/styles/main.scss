@@ -108,6 +108,9 @@ select {
 }
 
 .app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
   padding: 24px 0 calc(104px + env(safe-area-inset-bottom, 0px));
@@ -125,23 +128,65 @@ select {
   padding: 16px 0 40px;
 }
 
+.site-header__main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
 .site-header__brand {
   font-size: 1.05rem;
   font-weight: 760;
   letter-spacing: 0;
 }
 
+.site-header__back-link {
+  color: var(--clr-muted);
+  font-size: 0.9rem;
+}
+
 .site-header__nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px 18px;
   color: var(--clr-muted);
   font-size: 0.94rem;
 }
 
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-header__icon-button {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  color: var(--clr-text);
+  cursor: pointer;
+}
+
+.site-header__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.site-header__menu-button {
+  display: none;
+}
+
 .site-footer {
   border-top: 1px solid var(--clr-border);
-  margin-top: 48px;
+  margin-top: auto;
   padding-top: 16px;
   color: var(--clr-muted);
   font-size: 0.9rem;
@@ -961,9 +1006,54 @@ p {
   }
 
   .site-header {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-wrap: wrap;
     padding-bottom: 28px;
+  }
+
+  .site-header__main {
+    flex: 1 1 auto;
+  }
+
+  .site-header__menu-button {
+    display: inline-flex;
+  }
+
+  .site-header__nav {
+    display: grid;
+    max-height: 0;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: var(--clr-surface);
+    opacity: 0;
+    padding: 0 12px;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition:
+      max-height var(--cr-motion-base) ease,
+      opacity var(--cr-motion-fast) ease,
+      padding var(--cr-motion-base) ease,
+      transform var(--cr-motion-base) ease,
+      visibility var(--cr-motion-base) ease;
+    visibility: hidden;
+  }
+
+  .site-header__nav[data-state='open'] {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-height: 260px;
+    border-color: var(--clr-border);
+    opacity: 1;
+    padding: 12px;
+    pointer-events: auto;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  .site-header__actions {
+    padding-top: 4px;
   }
 
   .home-layout,
