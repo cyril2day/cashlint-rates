@@ -197,7 +197,7 @@ select {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .analyse-layout {
@@ -216,6 +216,7 @@ select {
 
 .analyse-layout__form,
 .analyse-layout__chart,
+.analyse-layout__observations,
 .analyse-layout__status,
 .analyse-layout__full,
 .compare-layout__form,
@@ -226,6 +227,7 @@ select {
 }
 
 .analyse-layout__full,
+.analyse-layout__observations,
 .compare-layout__full {
   grid-column: 1 / -1;
 }
@@ -293,6 +295,7 @@ p {
   font-size: 0.9rem;
 }
 
+.converter-card__empty,
 .converter-card__result,
 .converter-card__message {
   display: grid;
@@ -303,11 +306,36 @@ p {
   padding: 14px;
 }
 
+.converter-card__empty {
+  height: 100%;
+  align-content: center;
+  justify-items: start;
+  min-height: 220px;
+}
+
+.converter-card__empty-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, transparent 17px, currentColor 17px 23px, transparent 23px),
+    linear-gradient(transparent 17px, currentColor 17px 23px, transparent 23px);
+  color: var(--clr-accent);
+  opacity: 0.72;
+}
+
 .converter-card__message--error {
   border-color: color-mix(in oklab, var(--cr-colour-danger) 45%, var(--clr-border));
 }
 
+.converter-card__empty h2 {
+  font-size: 1.2rem;
+}
+
 .converter-card__message p,
+.converter-card__empty p,
 .converter-card__result p,
 .field__helper {
   max-width: none;
@@ -436,6 +464,7 @@ p {
 }
 
 .analysis-result__header,
+.analysis-result__observations,
 .analysis-result__quality,
 .analysis-result__formulas,
 .chart-panel {
@@ -444,6 +473,7 @@ p {
 }
 
 .analysis-result__quality,
+.analysis-result__observations,
 .chart-panel,
 .cr-chart-panel {
   border: 1px solid var(--clr-border);

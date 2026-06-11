@@ -61,7 +61,7 @@ export function AnalysisDateRangeFields({
   return (
     <>
       <label className="field" htmlFor="analyse-date-range">
-        <span className="field__label">Date range</span>
+        <span className="field__label">Period to analyse</span>
         <select
           className="field__control"
           id="analyse-date-range"

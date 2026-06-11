@@ -5,6 +5,7 @@ import { AnalysisChartPanel } from './analysis-chart-panel'
 import { AnalysisDataQualityPanel } from './analysis-data-quality-panel'
 import { AnalysisFormulaDisclosures } from './analysis-formula-disclosures'
 import { AnalysisMetricGrid } from './analysis-metric-grid'
+import { AnalysisObservationTable } from './analysis-observation-table'
 import { useBogartResultAvailability } from '@/components/bogart'
 
 export function AnalysisResult({ result }: { readonly result: PairAnalysisViewModelDto }) {
@@ -14,6 +15,9 @@ export function AnalysisResult({ result }: { readonly result: PairAnalysisViewMo
     <>
       <section className="analyse-layout__chart" aria-live="polite">
         <AnalysisChartPanel chart={result.chart} />
+      </section>
+      <section className="analyse-layout__observations analysis-result__observations" aria-label="Cleaned observations">
+        <AnalysisObservationTable chart={result.chart} />
       </section>
       <section className="analyse-layout__full" aria-label="Analysis metrics">
         <AnalysisMetricGrid metrics={result.metrics} />

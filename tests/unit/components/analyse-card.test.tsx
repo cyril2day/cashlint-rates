@@ -97,6 +97,7 @@ describe('AnalyseCard', () => {
 
     expect(screen.getByLabelText('Base')).toHaveValue('EUR')
     expect(screen.getByLabelText('Quote')).toHaveValue('JPY')
+    expect(screen.getByLabelText('Period to analyse')).toHaveValue('30D')
   })
 
   it('submits input and displays the server analysis result', async () => {
@@ -114,8 +115,9 @@ describe('AnalyseCard', () => {
     await waitFor(() => {
       expect(screen.getByRole('region', { name: 'EUR/JPY reference-rate history' })).toHaveClass('cr-chart-panel')
     })
-    expect(screen.getByText('Chart ready')).toHaveClass('cr-chart-panel__status')
-    expect(screen.getByText('EUR/JPY cleaned observations')).toBeInTheDocument()
+    expect(screen.queryByText('Chart ready')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Cleaned observations' })).toHaveClass('analysis-result__observations')
+    expect(screen.getByRole('table', { name: 'EUR/JPY cleaned observations' })).toBeInTheDocument()
     expect(screen.getByLabelText('Latest rate.')).toBeInTheDocument()
   })
 
