@@ -1,8 +1,9 @@
 export {
-  BogartAvailabilityProvider,
-  useBogartAvailability,
+  BogartProvider,
+  useBogartContext,
   useBogartResultAvailability,
-} from './bogart-availability'
+} from './bogart-context'
+export type { BogartPageContext } from './bogart-context'
 export { BogartButton } from './bogart-button'
 export { BogartChat } from './bogart-chat'
 export { BogartMessage } from './bogart-message'
