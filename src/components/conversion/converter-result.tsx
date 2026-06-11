@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
 import { matchDtoTag } from '@/shared/fp'
-import { BogartPanel } from '@/components/bogart'
+import { useBogartResultAvailability } from '@/components/bogart'
 
 type ConverterResultProps = {
   readonly result: ConversionViewModelDto
@@ -16,6 +16,8 @@ const effectiveDateText = (result: ConversionViewModelDto): string =>
   })(result.result.effectiveDate)
 
 export function ConverterResult({ result }: ConverterResultProps) {
+  useBogartResultAvailability(result.aiContextSeed)
+
   return (
     <section className="converter-card__result" aria-live="polite">
       <p className="converter-card__equation">
@@ -52,7 +54,6 @@ export function ConverterResult({ result }: ConverterResultProps) {
       <p className="converter-card__note">
         Reference rates may differ from live market, bank, card or payment-service rates.
       </p>
-      <BogartPanel context={result.aiContextSeed} />
     </section>
   )
 }
