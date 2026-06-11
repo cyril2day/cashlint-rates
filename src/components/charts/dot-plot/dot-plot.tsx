@@ -157,17 +157,10 @@ export function DotPlot({
             aria-label={ariaLabel}
           >
             <line className="dot-plot__axis" x1={model.plotLeft} x2={model.plotRight} y1={model.plotBottom} y2={model.plotBottom} />
-            <line className="dot-plot__axis" x1={model.plotLeft} x2={model.plotLeft} y1={model.plotTop} y2={model.plotBottom} />
-            {model.yTicks.map((tick) => (
-              <g className="dot-plot__tick" key={tick.value}>
-                <line x1={model.plotLeft} x2={model.plotRight} y1={tick.y} y2={tick.y} />
-                <text x={model.yLabelX} y={tick.y} textAnchor="end">{tick.label}</text>
-              </g>
-            ))}
             {model.xTicks.map((tick) => (
-              <g className="dot-plot__tick" key={tick.label}>
-                <line x1={tick.x} x2={tick.x} y1={model.plotTop} y2={model.plotBottom} />
-                <text x={tick.x} y={height - 6} textAnchor="middle">{tick.shortLabel}</text>
+              <g className="dot-plot__tick" key={tick.value}>
+                <line x1={tick.x} x2={tick.x} y1={model.plotBottom - 7} y2={model.plotBottom + 7} />
+                <text x={tick.x} y={height - 8} textAnchor="middle">{tick.label}</text>
               </g>
             ))}
             {model.points.map((point) => (

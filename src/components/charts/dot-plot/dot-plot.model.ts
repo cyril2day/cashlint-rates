@@ -1,6 +1,6 @@
-import { extent, scaleLinear, scalePoint } from 'd3'
+import { extent, scaleLinear } from 'd3'
 import type { DotPlotPoint, ValidatedDotPlot } from './dot-plot.domain'
-import { anyTrue, fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
+import { fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
 
 type ChartExtent = readonly [number, number]
 
@@ -11,14 +11,8 @@ export type DotPlotRenderedPoint = DotPlotPoint & {
 
 export type DotPlotRenderedTick = {
   readonly value: number
-  readonly y: number
-  readonly label: string
-}
-
-export type DotPlotRenderedLabelTick = {
-  readonly label: string
   readonly x: number
-  readonly shortLabel: string
+  readonly label: string
 }
 
 export type DotPlotModel = {
@@ -26,27 +20,22 @@ export type DotPlotModel = {
   readonly plotRight: number
   readonly plotTop: number
   readonly plotBottom: number
-  readonly yLabelX: number
-  readonly xTicks: ReadonlyArray<DotPlotRenderedLabelTick>
-  readonly yTicks: ReadonlyArray<DotPlotRenderedTick>
+  readonly baselineY: number
+  readonly xTicks: ReadonlyArray<DotPlotRenderedTick>
   readonly points: ReadonlyArray<DotPlotRenderedPoint>
 }
 
 const margin = {
-  bottom: 24,
-  left: 24,
-  right: 24,
-  top: 28,
+  bottom: 34,
+  left: 36,
+  right: 28,
+  top: 34,
 }
 
-const yLabelGap = 8
-const yLabelCharacterWidth = 7
-const maximumPlotLeftShare = 0.34
+const dotRadius = 4
+const stackGap = 3
 
-const allLabels = (plot: ValidatedDotPlot): ReadonlyArray<string> =>
-  Array.from(new Set(plot.points.map((point) => point.xLabel)))
-
-const allYValues = (plot: ValidatedDotPlot): ReadonlyArray<number> =>
+const allValues = (plot: ValidatedDotPlot): ReadonlyArray<number> =>
   plot.points.map((point) => point.yValue)
 
 const numberOrDefault =
@@ -78,73 +67,60 @@ const tickLabel = (value: number): string =>
     true: () => String(value),
   })(Number.isInteger(value))
 
-const estimatedLabelWidth = (label: string): number =>
-  label.length * yLabelCharacterWidth
+const clamp = (minimum: number, maximum: number, value: number): number =>
+  Math.min(Math.max(value, minimum), maximum)
 
-const requiredPlotLeft = (tickValues: ReadonlyArray<number>): number =>
-  Math.max(...tickValues.map((value) => estimatedLabelWidth(tickLabel(value)))) + yLabelGap
+const binCount = (pointCount: number): number =>
+  clamp(4, 12, Math.ceil(Math.sqrt(pointCount)))
 
-const plotLeftForTicks = (tickValues: ReadonlyArray<number>, width: number): number =>
-  Math.min(
-    Math.max(margin.left, requiredPlotLeft(tickValues)),
-    Math.max(margin.left, width * maximumPlotLeftShare),
-  )
+const binWidth = (minimum: number, maximum: number, count: number): number =>
+  (maximum - minimum) / count
 
-const labelTickStep = (labels: ReadonlyArray<string>): number =>
-  Math.max(1, Math.ceil(labels.length / 6))
+const rawBinIndex =
+  (minimum: number, width: number) =>
+  (value: number): number =>
+    Math.floor((value - minimum) / width)
 
-const isLabelTick =
-  (labels: ReadonlyArray<string>, step: number) =>
-  (_label: string, index: number): boolean =>
-    anyTrue([
-      index === 0,
-      index === labels.length - 1,
-      index % step === 0,
-    ])
+const binIndex =
+  (minimum: number, maximum: number, count: number) =>
+  (value: number): number =>
+    clamp(0, count - 1, rawBinIndex(minimum, binWidth(minimum, maximum, count))(value))
 
-const shortLabel = (label: string): string =>
-  matchBoolean<string>({
-    false: () => label,
-    true: () => label.slice(5),
-  })(label.length === 10)
+const binMidpoint = (minimum: number, width: number, index: number): number =>
+  minimum + (width * index) + (width / 2)
 
-const renderLabelTick =
-  (plotLeft: number, xScale: (label: string) => number | undefined) =>
-  (label: string): DotPlotRenderedLabelTick => ({
-    label,
-    x: numberOrDefault(plotLeft)(xScale(label)),
-    shortLabel: shortLabel(label),
-  })
+const precedingBinMatches =
+  (indexForValue: (value: number) => number, point: DotPlotPoint) =>
+  (candidate: DotPlotPoint): boolean =>
+    indexForValue(candidate.yValue) === indexForValue(point.yValue)
 
-const renderLabelTicks = (
-  labels: ReadonlyArray<string>,
-  plotLeft: number,
-  xScale: (label: string) => number | undefined,
-): ReadonlyArray<DotPlotRenderedLabelTick> => {
-  const step = labelTickStep(labels)
-
-  return labels
-    .filter(isLabelTick(labels, step))
-    .map(renderLabelTick(plotLeft, xScale))
-}
+const stackIndex =
+  (points: ReadonlyArray<DotPlotPoint>, indexForValue: (value: number) => number) =>
+  (point: DotPlotPoint, index: number): number =>
+    points
+      .slice(0, index)
+      .filter(precedingBinMatches(indexForValue, point))
+      .length
 
 const renderPoint =
   (
-    plotLeft: number,
-    xScale: (label: string) => number | undefined,
-    yScale: (value: number) => number,
+    baselineY: number,
+    binCentre: (value: number) => number,
+    dotStep: number,
+    stackAt: (point: DotPlotPoint, index: number) => number,
+    xScale: (value: number) => number,
   ) =>
-  (point: DotPlotPoint): DotPlotRenderedPoint => ({
+  (point: DotPlotPoint, index: number): DotPlotRenderedPoint => ({
     ...point,
-    x: numberOrDefault(plotLeft)(xScale(point.xLabel)),
-    y: yScale(point.yValue),
+    x: xScale(binCentre(point.yValue)),
+    y: baselineY - (stackAt(point, index) * dotStep),
   })
 
-const renderTick =
-  (yScale: (value: number) => number) =>
+const renderValueTick =
+  (xScale: (value: number) => number) =>
   (value: number): DotPlotRenderedTick => ({
     value,
-    y: yScale(value),
+    x: xScale(value),
     label: tickLabel(value),
   })
 
@@ -153,32 +129,38 @@ export const buildDotPlotModel = (
   width: number,
   height: number,
 ): DotPlotModel => {
-  const labels = allLabels(plot)
-  const [minimum, maximum] = expandFlatExtent(extentOrDefault(allYValues(plot)))
+  const [minimum, maximum] = expandFlatExtent(extentOrDefault(allValues(plot)))
   const plotBottom = height - margin.bottom
   const plotRight = width - margin.right
-  const yTickValues = scaleLinear()
+  const plotLeft = margin.left
+  const baselineY = plotBottom - dotRadius
+  const xScale = scaleLinear()
     .domain([minimum, maximum])
     .nice()
-    .range([plotBottom, margin.top])
-    .ticks(4)
-  const plotLeft = plotLeftForTicks(yTickValues, width)
-  const xScale = scalePoint()
-    .domain([...labels])
     .range([plotLeft, plotRight])
-  const yScale = scaleLinear()
+  const domain = xScale.domain()
+  const domainMinimum = numberOrDefault(minimum)(domain[0])
+  const domainMaximum = numberOrDefault(maximum)(domain[1])
+  const count = binCount(plot.points.length)
+  const widthValue = binWidth(domainMinimum, domainMaximum, count)
+  const indexForValue = binIndex(domainMinimum, domainMaximum, count)
+  const centreForValue = (value: number): number =>
+    binMidpoint(domainMinimum, widthValue, indexForValue(value))
+  const stackAt = stackIndex(plot.points, indexForValue)
+  const dotStep = (dotRadius * 2) + stackGap
+  const tickValues = scaleLinear()
     .domain([minimum, maximum])
     .nice()
-    .range([plotBottom, margin.top])
+    .range([plotLeft, plotRight])
+    .ticks(5)
 
   return {
     plotLeft,
     plotRight,
     plotTop: margin.top,
     plotBottom,
-    yLabelX: plotLeft - yLabelGap,
-    xTicks: renderLabelTicks(labels, plotLeft, xScale),
-    yTicks: yTickValues.map(renderTick(yScale)),
-    points: plot.points.map(renderPoint(plotLeft, xScale, yScale)),
+    baselineY,
+    xTicks: tickValues.map(renderValueTick(xScale)),
+    points: plot.points.map(renderPoint(baselineY, centreForValue, dotStep, stackAt, xScale)),
   }
 }
