@@ -12,7 +12,10 @@ type BogartModalState = 'open' | 'closing'
 
 type BogartModalProps = {
   readonly context: BogartResultContextDto
+  readonly contextLabel: string
+  readonly placeholder: string
   readonly state: BogartModalState
+  readonly suggestions: ReadonlyArray<string>
   readonly onExited: () => void
   readonly onRequestClose: () => void
 }
@@ -118,7 +121,10 @@ const withBackgroundInert = (): (() => void) => {
 
 export function BogartModal({
   context,
+  contextLabel,
+  placeholder,
   state,
+  suggestions,
   onExited,
   onRequestClose,
 }: BogartModalProps) {
@@ -183,8 +189,8 @@ export function BogartModal({
             Close
           </button>
         </header>
-        <p className="bogart-modal__context" id={contextId}>Context: Current page</p>
-        <BogartChat context={context} />
+        <p className="bogart-modal__context" id={contextId}>Context: {contextLabel}</p>
+        <BogartChat context={context} placeholder={placeholder} suggestions={suggestions} />
       </div>
     </div>,
     document.body,

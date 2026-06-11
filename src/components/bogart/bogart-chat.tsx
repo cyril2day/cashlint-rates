@@ -60,8 +60,12 @@ const emptyState = (): ReactNode => (
 
 export function BogartChat({
   context,
+  placeholder,
+  suggestions,
 }: {
   readonly context: BogartResultContextDto
+  readonly placeholder: string
+  readonly suggestions: ReadonlyArray<string>
 }) {
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState<ReadonlyArray<BogartChatMessage>>([])
@@ -153,7 +157,7 @@ export function BogartChat({
             setQuestion(event.target.value)
           }}
           onKeyDown={submitOnEnter}
-          placeholder="Ask about this result..."
+          placeholder={placeholder}
           type="text"
           value={question}
         />
@@ -162,7 +166,7 @@ export function BogartChat({
         </button>
       </form>
       {matchBoolean<ReactNode>({
-        false: () => <BogartSuggestions disabled={loading} onSelect={sendQuestion} />,
+        false: () => <BogartSuggestions disabled={loading} onSelect={sendQuestion} suggestions={suggestions} />,
         true: () => <p className="converter-card__note">10 of 10 questions used today.</p>,
       })(limitReached)}
     </>

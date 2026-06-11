@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
 import type { BogartResultContextDto } from '@/shared/dto/bogart'
-import { useBogartAvailability } from './bogart-availability'
+import { useBogartContext } from './bogart-context'
 import { BogartModal } from './bogart-modal'
 
 type BogartModalState = 'closed' | 'open' | 'closing'
@@ -37,7 +37,7 @@ const focusButton = (button: HTMLButtonElement | null): undefined => {
 export function BogartButton() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [modalState, setModalState] = useState<BogartModalState>('closed')
-  const { available, context } = useBogartAvailability()
+  const { available, context, contextLabel, placeholder, suggestions } = useBogartContext()
   const modalVisible = modalState !== 'closed'
 
   useEffect(() => {
@@ -73,9 +73,12 @@ export function BogartButton() {
       true: () => (
         <BogartModal
           context={resultContext}
+          contextLabel={contextLabel}
           onExited={handleExited}
           onRequestClose={requestClose}
+          placeholder={placeholder}
           state={visibleModalState(modalState)}
+          suggestions={suggestions}
         />
       ),
     })(modalVisible)
