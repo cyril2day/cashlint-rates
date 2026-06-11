@@ -204,7 +204,7 @@ select {
   display: grid;
   grid-template-columns: minmax(280px, 0.35fr) minmax(0, 1fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .compare-layout {
@@ -217,8 +217,10 @@ select {
 .analyse-layout__form,
 .analyse-layout__chart,
 .analyse-layout__observations,
+.analyse-layout__summary,
+.analyse-layout__quality,
+.analyse-layout__formulas,
 .analyse-layout__status,
-.analyse-layout__full,
 .compare-layout__form,
 .compare-layout__chart,
 .compare-layout__status,
@@ -226,10 +228,17 @@ select {
   min-width: 0;
 }
 
-.analyse-layout__full,
 .analyse-layout__observations,
+.analyse-layout__summary,
+.analyse-layout__quality,
+.analyse-layout__formulas,
 .compare-layout__full {
   grid-column: 1 / -1;
+}
+
+.analyse-layout__chart,
+.analyse-layout__chart > .chart-panel {
+  height: 100%;
 }
 
 .analyse-layout__status,
@@ -434,27 +443,8 @@ p {
   gap: 10px;
 }
 
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.metric-card {
-  display: grid;
-  gap: 8px;
-  padding: 18px;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius);
-  background: var(--clr-surface);
-}
-
-.metric-card__label {
-  color: var(--clr-muted);
-  font-size: 0.86rem;
-}
-
 .analysis-card {
+  align-content: start;
   width: 100%;
 }
 
@@ -467,9 +457,27 @@ p {
 .analysis-result__observations,
 .analysis-result__quality,
 .analysis-result__formulas,
+.analysis-summary,
 .chart-panel {
   display: grid;
   gap: 12px;
+}
+
+.analysis-summary {
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  padding: 16px;
+}
+
+.analysis-summary__table th {
+  color: var(--clr-muted);
+  font-weight: 700;
+}
+
+.analysis-summary__table td {
+  font-weight: 760;
+  text-align: right;
 }
 
 .analysis-result__quality,
@@ -704,6 +712,90 @@ p {
   border-radius: 999px;
 }
 
+.dot-plot {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dot-plot__svg {
+  display: block;
+  min-width: 560px;
+  width: 100%;
+}
+
+.dot-plot__axis {
+  stroke: var(--clr-border);
+  stroke-width: 1.5;
+  shape-rendering: crispEdges;
+}
+
+.dot-plot__tick line {
+  stroke: color-mix(in oklab, var(--clr-border) 74%, transparent);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.dot-plot__tick text {
+  dominant-baseline: middle;
+  fill: var(--clr-muted);
+  font-size: 0.72rem;
+}
+
+.dot-plot__point {
+  cursor: pointer;
+}
+
+.dot-plot__point:focus {
+  outline: none;
+}
+
+.dot-plot__point-hit-area {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.dot-plot__point-dot {
+  fill: var(--clr-accent);
+  stroke: var(--clr-surface);
+  stroke-width: 2;
+  transition: fill var(--cr-motion-fast) ease, r var(--cr-motion-fast) ease, stroke var(--cr-motion-fast) ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.dot-plot__point:hover .dot-plot__point-dot,
+.dot-plot__point:focus-visible .dot-plot__point-dot,
+.dot-plot__point--active .dot-plot__point-dot {
+  fill: var(--clr-accent-strong);
+  r: 5;
+}
+
+.dot-plot__tooltip {
+  pointer-events: none;
+}
+
+.dot-plot__tooltip-background {
+  fill: var(--clr-text);
+  stroke: var(--clr-surface);
+  stroke-width: 1;
+}
+
+.dot-plot__tooltip-text {
+  dominant-baseline: middle;
+  fill: var(--clr-surface);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.dot-plot__error {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  padding: 12px;
+}
+
 // -----------------------------------------------------------------------------
 // pristine-charts accent overrides
 // The library ships its own CSS (LineChart.css, ChartError.css) as of v0.1.4.
@@ -756,18 +848,110 @@ p {
   text-align: left;
 }
 
+.formula-card-grid,
+.cr-formula-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.formula-card,
+.cr-formula-card,
 .formula-disclosure,
 .cr-formula-disclosure {
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
   background: var(--clr-surface);
-  padding: 12px;
+  overflow: clip;
 }
 
+.formula-card__summary,
 .formula-disclosure summary,
 .cr-formula-disclosure summary {
   cursor: pointer;
+  display: grid;
+  gap: 6px;
   font-weight: 760;
+  list-style-position: inside;
+  padding: 14px;
+}
+
+.formula-card__title {
+  color: var(--clr-text);
+}
+
+.formula-card__teaser,
+.formula-card__accessible-text,
+.formula-card__note {
+  color: var(--clr-muted);
+  font-size: 0.92rem;
+}
+
+.formula-card__body {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--clr-border);
+  padding: 14px;
+}
+
+.formula-card__body p,
+.formula-card__body ol,
+.formula-card__result {
+  margin: 0;
+}
+
+.formula-card__steps {
+  display: grid;
+  gap: 8px;
+}
+
+.formula-card__solution {
+  display: grid;
+  gap: 8px;
+}
+
+.formula-card__solution h4,
+.formula-card__steps h4 {
+  margin: 0;
+}
+
+.formula-card__steps ol {
+  display: grid;
+  gap: 6px;
+  padding-left: 20px;
+}
+
+.formula-card__result {
+  display: grid;
+  gap: 8px;
+}
+
+.formula-card__result div {
+  display: grid;
+  gap: 4px;
+}
+
+.formula-card__result dt,
+.formula-card__note span {
+  color: var(--clr-muted);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.formula-card__result dd {
+  margin: 0;
+}
+
+.formula-card__note {
+  display: grid;
+  gap: 4px;
+  border-left: 3px solid var(--clr-border);
+  padding-left: 10px;
+}
+
+.formula-card__note--warning {
+  border-color: var(--clr-accent);
 }
 
 .formula-disclosure code,
@@ -1097,7 +1281,8 @@ p {
   }
 
   .converter-card__grid,
-  .metric-grid,
+  .formula-card-grid,
+  .cr-formula-card-grid,
   .comparison-highlights,
   .link-list {
     grid-template-columns: 1fr;
