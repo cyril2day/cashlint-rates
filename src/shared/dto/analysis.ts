@@ -113,6 +113,7 @@ export type CalculationExplanationDto = {
   readonly plainMeaning: string
   readonly latexFormula: string
   readonly accessibleText: string
+  readonly workedSolutionLatex: MaybeDto<string>
   readonly steps: ReadonlyArray<string>
   readonly result: AnalysisMetricValueDto
   readonly interpretation: string

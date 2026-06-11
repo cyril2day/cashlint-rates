@@ -68,6 +68,8 @@ import {
   matchMaybe,
   matchResult,
   matchTag,
+  none,
+  some,
   success,
   type AsyncResult,
   type Maybe,
@@ -321,10 +323,28 @@ const percentFormat = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
 })
 
+const latexNumberFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 6,
+  minimumFractionDigits: 0,
+  useGrouping: false,
+})
+
+const latexPercentFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+  useGrouping: false,
+})
+
 const maybeDto = <A>(maybe: Maybe<A>): MaybeDto<A> =>
   matchMaybe<A, MaybeDto<A>>({
     none: () => ({ _tag: 'Nothing' }),
     some: (value) => ({ _tag: 'Just', value }),
+  })(maybe)
+
+const maybeFromDto = <A>(maybe: MaybeDto<A>): Maybe<A> =>
+  matchDtoTag<MaybeDto<A>, Maybe<A>>({
+    Just: (just) => fromNullable(just.value),
+    Nothing: () => none<A>(),
   })(maybe)
 
 const justDto = <A>(value: A): MaybeDto<A> => ({ _tag: 'Just', value })
@@ -336,6 +356,10 @@ const displayRate = (value: number): string => numberFormat.format(value)
 const displayPercent = (value: number): string => `${percentFormat.format(value)}%`
 
 const displayZScore = (value: number): string => percentFormat.format(value)
+
+const latexNumber = (value: number): string => latexNumberFormat.format(value)
+
+const latexPercent = (value: number): string => `${latexPercentFormat.format(value)}\\%`
 
 const displayValue =
   (unit: AnalysisMetricUnitDto) =>
@@ -428,6 +452,179 @@ const metricByKey = (metrics: PairAnalysisMetricsDto, key: AnalysisMetricKey): A
     'typical-movement': () => metrics.typicalMovement,
   })[key]()
 
+type WorkedSolutionContext = {
+  readonly levelStats: RateLevelStats
+  readonly movementStats: MovementStats
+  readonly metrics: PairAnalysisMetricsDto
+}
+
+type WorkedSolutionBuilder = (context: WorkedSolutionContext) => Maybe<string>
+
+const appendMaybeNumber = (
+  state: Maybe<ReadonlyArray<number>>,
+  value: Maybe<number>,
+): Maybe<ReadonlyArray<number>> =>
+  matchMaybe<ReadonlyArray<number>, Maybe<ReadonlyArray<number>>>({
+    none: () => none<ReadonlyArray<number>>(),
+    some: (values) =>
+      matchMaybe<number, Maybe<ReadonlyArray<number>>>({
+        none: () => none<ReadonlyArray<number>>(),
+        some: (numberValue) => some([...values, numberValue]),
+      })(value),
+  })(state)
+
+const sequenceNumbers = (
+  values: ReadonlyArray<Maybe<number>>,
+): Maybe<ReadonlyArray<number>> =>
+  values.reduce(appendMaybeNumber, some<ReadonlyArray<number>>([]))
+
+const workedFromNumbers =
+  (values: ReadonlyArray<Maybe<number>>) =>
+  (project: (numbers: ReadonlyArray<number>) => string): Maybe<string> =>
+    mapMaybe(project)(sequenceNumbers(values))
+
+const numberAt =
+  (index: number) =>
+  (values: ReadonlyArray<number>): number =>
+    withDefault(0)(fromNullable(values[index]))
+
+const rateCount = (context: WorkedSolutionContext): number =>
+  context.levelStats.observationCount
+
+const returnCount = (context: WorkedSolutionContext): number =>
+  context.movementStats.returnObservationCount
+
+const latestReferenceRateSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([context.levelStats.latestRate])((numbers) => {
+    const latest = numberAt(0)(numbers)
+
+    return String.raw`r_{\mathrm{latest}} = r_n = ${latexNumber(latest)}`
+  })
+
+const periodMovementSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([
+    context.levelStats.firstRate,
+    context.levelStats.latestRate,
+    maybeFromDto(context.metrics.periodMovement.rawValue),
+  ])((numbers) => {
+    const first = numberAt(0)(numbers)
+    const latest = numberAt(1)(numbers)
+    const result = numberAt(2)(numbers)
+
+    return String.raw`\frac{${latexNumber(latest)} - ${latexNumber(first)}}{${latexNumber(first)}} \times 100 = ${latexPercent(result)}`
+  })
+
+const averageRateSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([
+    context.levelStats.mean,
+    maybeFromDto(context.metrics.averageRate.rawValue),
+  ])((numbers) => {
+    const mean = numberAt(0)(numbers)
+    const result = numberAt(1)(numbers)
+
+    return String.raw`\bar{r} = \frac{\sum r_i}{${rateCount(context).toString()}} = \frac{${latexNumber(mean * rateCount(context))}}{${rateCount(context).toString()}} = ${latexNumber(result)}`
+  })
+
+const observedRangeSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([
+    context.levelStats.min,
+    context.levelStats.max,
+    maybeFromDto(context.metrics.observedRange.rawValue),
+  ])((numbers) => {
+    const minimum = numberAt(0)(numbers)
+    const maximum = numberAt(1)(numbers)
+    const result = numberAt(2)(numbers)
+
+    return String.raw`\max(r) - \min(r) = ${latexNumber(maximum)} - ${latexNumber(minimum)} = ${latexNumber(result)}`
+  })
+
+const latestPositionSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([
+    context.levelStats.latestRate,
+    maybeFromDto(context.metrics.latestPosition.rawValue),
+  ])((numbers) => {
+    const latest = numberAt(0)(numbers)
+    const result = numberAt(1)(numbers)
+
+    return String.raw`\frac{\#\{r_i \le ${latexNumber(latest)}\}}{${rateCount(context).toString()}} \times 100 = ${latexPercent(result)}`
+  })
+
+const awayFromTypicalSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([
+    context.levelStats.latestRate,
+    context.levelStats.mean,
+    context.levelStats.populationStdDev,
+    maybeFromDto(context.metrics.awayFromTypical.rawValue),
+  ])((numbers) => {
+    const latest = numberAt(0)(numbers)
+    const mean = numberAt(1)(numbers)
+    const standardDeviation = numberAt(2)(numbers)
+    const result = numberAt(3)(numbers)
+
+    return String.raw`z = \frac{${latexNumber(latest)} - ${latexNumber(mean)}}{${latexNumber(standardDeviation)}} = ${latexNumber(result)}`
+  })
+
+const typicalMovementSolution: WorkedSolutionBuilder = (context) =>
+  workedFromNumbers([
+    context.movementStats.meanLogReturn,
+    context.movementStats.sampleStdDevLogReturn,
+    maybeFromDto(context.metrics.typicalMovement.rawValue),
+  ])((numbers) => {
+    const meanLogReturn = numberAt(0)(numbers)
+    const sampleStdDevLogReturn = numberAt(1)(numbers)
+    const result = numberAt(2)(numbers)
+
+    return String.raw`s_{\ell} = \sqrt{\frac{\sum_{i=1}^{${returnCount(context).toString()}}(\ell_i - ${latexNumber(meanLogReturn)})^2}{${returnCount(context).toString()} - 1}} \times 100 = ${latexNumber(sampleStdDevLogReturn)} \times 100 = ${latexPercent(result)}`
+  })
+
+const workedSolutionBuilders: Readonly<Record<AnalysisMetricKey, WorkedSolutionBuilder>> = {
+  'average-rate': averageRateSolution,
+  'away-from-typical': awayFromTypicalSolution,
+  'latest-position': latestPositionSolution,
+  'latest-reference-rate': latestReferenceRateSolution,
+  'observed-range': observedRangeSolution,
+  'period-movement': periodMovementSolution,
+  'typical-movement': typicalMovementSolution,
+}
+
+const workedSolutionLatex =
+  (context: WorkedSolutionContext) =>
+  (metricKey: AnalysisMetricKey): MaybeDto<string> =>
+    maybeDto(workedSolutionBuilders[metricKey](context))
+
+const emptyLevelStats = (): RateLevelStats => ({
+  observationCount: 0,
+  firstRate: none(),
+  latestRate: none(),
+  min: none(),
+  max: none(),
+  range: none(),
+  mean: none(),
+  median: none(),
+  populationStdDev: none(),
+  percentilePosition: none(),
+  zScore: none(),
+  unusualnessLabel: 'not_applicable',
+})
+
+const emptyMovementStats = (): MovementStats => ({
+  returnObservationCount: 0,
+  periodMovementPercent: none(),
+  meanLogReturn: none(),
+  sampleStdDevLogReturn: none(),
+  typicalMovementPercent: none(),
+  displayStrength: 'unavailable',
+  logReturns: [],
+})
+
+const emptyWorkedSolutionContext = (
+  metrics: PairAnalysisMetricsDto,
+): WorkedSolutionContext => ({
+  levelStats: emptyLevelStats(),
+  movementStats: emptyMovementStats(),
+  metrics,
+})
+
 const unavailableReason = (metric: AnalysisMetricValueDto): MaybeDto<string> =>
   matchDtoTag<AnalysisMetricAvailabilityDto, MaybeDto<string>>({
     Available: () => nothingDto<string>(),
@@ -447,7 +644,7 @@ const noDataOrLimitedStatusByKey: Readonly<Record<'false' | 'true', DataQualityD
 }
 
 const explanation =
-  (metrics: PairAnalysisMetricsDto) =>
+  (context: WorkedSolutionContext) =>
   (entry: FormulaRegistryEntry): CalculationExplanationDto => ({
     formulaKey: entry.formulaKey,
     metricKey: entry.metricKey,
@@ -455,11 +652,12 @@ const explanation =
     plainMeaning: entry.plainMeaning,
     latexFormula: entry.latex,
     accessibleText: entry.accessibleFormulaText,
+    workedSolutionLatex: workedSolutionLatex(context)(entry.metricKey),
     steps: entry.steps,
-    result: metricByKey(metrics, entry.metricKey),
+    result: metricByKey(context.metrics, entry.metricKey),
     interpretation: entry.interpretation,
     caveat: justDto(entry.caveat),
-    unavailableReason: unavailableReason(metricByKey(metrics, entry.metricKey)),
+    unavailableReason: unavailableReason(metricByKey(context.metrics, entry.metricKey)),
   })
 
 const chartPoint = (observation: RateObservation): PairChartPointDto => ({
@@ -596,6 +794,7 @@ const applicableViewModel = (
   const metrics = metricsFromStats(levelStats, movementStats)
   const dataQuality = seriesDataQuality(requestedObservationCount, series)
   const summary = chartSummary(input.pair, series.observations.length)
+  const workedSolutionContext = { levelStats, movementStats, metrics }
 
   return {
     mode: 'pair-analysis',
@@ -614,7 +813,7 @@ const applicableViewModel = (
     metrics,
     dataQuality,
     insight: withDefault(summary)(fromNullable(dataQuality.messages[0])),
-    calculationExplanations: analysisFormulaEntries.map(explanation(metrics)),
+    calculationExplanations: analysisFormulaEntries.map(explanation(workedSolutionContext)),
     caveats,
     attribution,
     aiContextSeed: {
@@ -636,6 +835,7 @@ const applicableViewModel = (
 const sameCurrencyViewModel = (input: ValidatedAnalysisInput): PairAnalysisViewModelDto => {
   const metrics = sameCurrencyMetrics()
   const dateRange = dateRangeViewModel(input.requestedDateRange, input.effectiveDateRange)
+  const workedSolutionContext = emptyWorkedSolutionContext(metrics)
 
   return {
     mode: 'pair-analysis',
@@ -654,7 +854,7 @@ const sameCurrencyViewModel = (input: ValidatedAnalysisInput): PairAnalysisViewM
     metrics,
     dataQuality: sameCurrencyDataQuality(),
     insight: sameCurrencyReason,
-    calculationExplanations: analysisFormulaEntries.map(explanation(metrics)),
+    calculationExplanations: analysisFormulaEntries.map(explanation(workedSolutionContext)),
     caveats,
     attribution,
     aiContextSeed: {
