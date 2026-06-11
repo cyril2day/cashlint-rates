@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 import { none } from 'pristine-charts'
 import { LineChart, formatLineChartNumber } from 'pristine-charts/line-chart'
 import type { PairChartPointDto, PairChartViewModelDto } from '@/shared/dto/analysis'
@@ -12,7 +13,7 @@ function AnalysisObservationTable({
   readonly chart: PairChartViewModelDto
 }) {
   return (
-    <table className="data-table">
+    <table className="data-table cr-data-table">
       <caption>{chart.tableCaption}</caption>
       <thead>
         <tr>
@@ -55,7 +56,7 @@ function AnalysisLineChart({
   readonly chart: PairChartViewModelDto
 }) {
   return (
-    <div className="chart-panel__visual">
+    <div className="chart-panel__visual cr-chart-panel__visual">
       <LineChart
         ariaLabel={chart.summary}
         caption={none}
@@ -87,10 +88,18 @@ export function AnalysisChartPanel({
 }: {
   readonly chart: PairChartViewModelDto
 }) {
+  const summaryId = useId()
+  const titleId = useId()
+  const statusText = matchBoolean<string>({
+    false: () => 'Chart unavailable',
+    true: () => 'Chart ready',
+  })(chart.points.length > 0)
+
   return (
-    <div className="chart-panel">
-      <h3>{chart.title}</h3>
-      <p>{chart.summary}</p>
+    <div className="chart-panel cr-chart-panel" aria-describedby={summaryId} aria-labelledby={titleId} role="region">
+      <h3 id={titleId}>{chart.title}</h3>
+      <span className="chart-panel__status cr-chart-panel__status">{statusText}</span>
+      <p className="chart-panel__summary cr-chart-panel__summary" id={summaryId}>{chart.summary}</p>
       {chartContent(chart)}
     </div>
   )

@@ -12,6 +12,7 @@ import type { ValidatedIndexedComparisonChart, IndexedComparisonChartError } fro
 import { validateIndexedComparisonChart } from './indexed-comparison-chart.domain'
 
 export type IndexedComparisonChartProps = {
+  readonly ariaDescribedBy?: string
   readonly ariaLabel: string
   readonly chart: IndexedComparisonChartViewModelDto
   readonly height: number
@@ -117,6 +118,7 @@ function IndexedComparisonPointMarker({
 }
 
 export function IndexedComparisonChart({
+  ariaDescribedBy,
   ariaLabel,
   chart,
   height,
@@ -136,11 +138,12 @@ export function IndexedComparisonChart({
       const model = buildIndexedComparisonChartModel(validatedChart, width, height)
 
       return (
-        <div className="chart-panel__visual comparison-chart">
+        <div className="chart-panel__visual cr-chart-panel__visual comparison-chart cr-comparison-chart">
           <svg
             className="comparison-chart__svg"
             viewBox={`0 0 ${String(width)} ${String(height)}`}
             role="img"
+            aria-describedby={ariaDescribedBy}
             aria-label={ariaLabel}
           >
             <line className="comparison-chart__axis" x1={model.plotLeft} x2={model.plotRight} y1={model.plotBottom} y2={model.plotBottom} />

@@ -9,7 +9,7 @@ function FormulaDisclosureItem({
   readonly explanation: CalculationExplanationDto
 }) {
   return (
-    <details className="formula-disclosure">
+    <details className="formula-disclosure cr-formula-disclosure">
       <summary>{explanation.title}</summary>
       <p>{explanation.plainMeaning}</p>
       <KatexFormula accessibleText={explanation.accessibleText} latex={explanation.latexFormula} />

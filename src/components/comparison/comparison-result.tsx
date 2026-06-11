@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 import type {
   ComparisonMetricValueDto,
   ComparisonQuoteInclusionDto,
@@ -68,13 +69,21 @@ function ComparisonHighlights({ result }: { readonly result: ComparisonViewModel
 }
 
 function ComparisonChartPanel({ chart }: { readonly chart: IndexedComparisonChartViewModelDto }) {
+  const summaryId = useId()
+  const titleId = useId()
+  const statusText = matchBoolean<string>({
+    false: () => 'Chart unavailable',
+    true: () => 'Chart ready',
+  })(chart.points.length > 0)
+
   return (
-    <div className="chart-panel">
-      <h3>{chart.title}</h3>
-      <p>{chart.summary}</p>
+    <div className="chart-panel cr-chart-panel" aria-describedby={summaryId} aria-labelledby={titleId} role="region">
+      <h3 id={titleId}>{chart.title}</h3>
+      <span className="chart-panel__status cr-chart-panel__status">{statusText}</span>
+      <p className="chart-panel__summary cr-chart-panel__summary" id={summaryId}>{chart.summary}</p>
       {matchBoolean<ReactNode>({
         false: () => <p className="analysis-result__empty">No indexed observations to chart.</p>,
-        true: () => <IndexedComparisonChart ariaLabel={chart.summary} chart={chart} height={240} width={720} />,
+        true: () => <IndexedComparisonChart ariaDescribedBy={summaryId} ariaLabel={chart.summary} chart={chart} height={240} width={720} />,
       })(chart.points.length > 0)}
     </div>
   )
@@ -82,7 +91,7 @@ function ComparisonChartPanel({ chart }: { readonly chart: IndexedComparisonChar
 
 function ComparisonRowsTable({ result }: { readonly result: ComparisonViewModelDto }) {
   return (
-    <table className="data-table">
+    <table className="data-table cr-data-table">
       <caption>{result.chart.tableCaption}</caption>
       <thead>
         <tr>

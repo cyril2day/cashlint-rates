@@ -26,7 +26,7 @@ export function KatexFormula({
 }) {
   return matchResult<FormulaRenderError, string, React.ReactNode>({
     failure: () => (
-      <div className="katex-formula katex-formula--fallback" role="note">
+      <div className="katex-formula cr-katex-formula katex-formula--fallback cr-katex-formula--fallback" role="note">
         <code>{latex}</code>
         <span>Formula rendering is unavailable. {accessibleText}</span>
       </div>
@@ -34,7 +34,7 @@ export function KatexFormula({
     success: (html) => (
       <div
         aria-label={accessibleText}
-        className="katex-formula"
+        className="katex-formula cr-katex-formula"
         dangerouslySetInnerHTML={{ __html: html }}
         role="math"
       />

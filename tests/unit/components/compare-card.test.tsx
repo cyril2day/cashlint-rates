@@ -188,6 +188,8 @@ describe('CompareCard', () => {
     await waitFor(() => {
       expect(screen.getByText('Most stable')).toBeInTheDocument()
     })
+    expect(screen.getByRole('region', { name: 'USD indexed comparison' })).toHaveClass('cr-chart-panel')
+    expect(screen.getByText('Chart ready')).toHaveClass('cr-chart-panel__status')
     expect(screen.getByLabelText('Indexed comparison for USD against 2 quotes.')).toBeInTheDocument()
     expect(screen.getByText('USD indexed comparison rows')).toBeInTheDocument()
     expect(screen.getAllByText('Included in rankings')).toHaveLength(2)
