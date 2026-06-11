@@ -1,9 +1,11 @@
 'use client'
 
 import { useReducer, useState } from 'react'
-import type { Dispatch } from 'react'
+import type { Dispatch, ReactNode } from 'react'
 import type { AnalyseRequestDto } from '@/shared/dto/analysis'
-import type { AnalyseAction } from './analysis-state-view'
+import { matchTag } from '@/shared/fp'
+import { AnalysisDataQualitySummary } from './analysis-data-quality-panel'
+import type { AnalyseAction, AnalyseState } from './analysis-state-view'
 import { AnalysisCurrencyFields } from './analysis-currency-fields'
 import { AnalysisDateRangeFields } from './analysis-date-range-fields'
 import type { DateRangeChoice } from './analysis-form-model'
@@ -38,6 +40,14 @@ const submitInput =
     dispatch({ tag: 'submit' })
     void postAnalyseRequest(input).then(dispatchClientResult(dispatch))
   }
+
+const formQualitySummary = (state: AnalyseState): ReactNode =>
+  matchTag<AnalyseState, ReactNode>({
+    failure: () => null,
+    initial: () => null,
+    loading: () => null,
+    success: (successState) => <AnalysisDataQualitySummary dataQuality={successState.result.dataQuality} />,
+  })(state)
 
 export function AnalyseCard({
   currencyCodes,
@@ -85,6 +95,7 @@ export function AnalyseCard({
         <button className="button" disabled={loading} type="submit">
           Analyse
         </button>
+        {formQualitySummary(state)}
       </form>
       <AnalysisStateView state={state} />
     </main>

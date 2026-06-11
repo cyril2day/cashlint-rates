@@ -2,15 +2,14 @@
 
 import type { DataQualityDto } from '@/shared/dto/analysis'
 
-export function AnalysisDataQualityPanel({
+export function AnalysisDataQualitySummary({
   dataQuality,
 }: {
   readonly dataQuality: DataQualityDto
 }) {
   return (
-    <div className="analysis-result__quality">
-      <h3>Data quality</h3>
-      <p>{dataQuality.messages.join(' ')}</p>
+    <div className="analysis-form-quality">
+      <p className="analysis-form-quality__message">{dataQuality.messages.join(' ')}</p>
       <dl>
         <div>
           <dt>Usable observations</dt>

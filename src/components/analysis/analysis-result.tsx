@@ -2,7 +2,6 @@
 
 import type { PairAnalysisViewModelDto } from '@/shared/dto/analysis'
 import { AnalysisChartPanel } from './analysis-chart-panel'
-import { AnalysisDataQualityPanel } from './analysis-data-quality-panel'
 import { AnalysisFormulaDisclosures } from './analysis-formula-disclosures'
 import { AnalysisObservationChart } from './analysis-observation-chart'
 import { AnalysisSummaryTable } from './analysis-summary-table'
@@ -21,9 +20,6 @@ export function AnalysisResult({ result }: { readonly result: PairAnalysisViewMo
       </section>
       <section className="analyse-layout__summary" aria-label="Analysis summary">
         <AnalysisSummaryTable metrics={result.metrics} />
-      </section>
-      <section className="analyse-layout__quality" aria-label="Data quality">
-        <AnalysisDataQualityPanel dataQuality={result.dataQuality} />
       </section>
       <section className="analyse-layout__formulas" aria-label="Formula details">
         <AnalysisFormulaDisclosures explanations={result.calculationExplanations} />
