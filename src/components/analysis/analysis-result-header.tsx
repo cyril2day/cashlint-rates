@@ -17,7 +17,7 @@ export function AnalysisResultHeader({
 }) {
   return (
     <div className="analysis-result__header">
-      <p className="section__eyebrow">{qualityLabel[result.dataQuality.status]}</p>
+      <p className="analysis-result__quality-label">{qualityLabel[result.dataQuality.status]}</p>
       <h2>{result.pair.label}</h2>
       <p>{result.insight}</p>
     </div>

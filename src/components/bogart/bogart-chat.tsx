@@ -143,7 +143,7 @@ export function BogartChat({
         })(messages.length === 0)}
         {matchBoolean<ReactNode>({
           false: () => null,
-          true: () => <p className="converter-card__note" role="status">Bogart is thinking...</p>,
+          true: () => <p className="converter-card__note" role="status">Preparing response...</p>,
         })(loading)}
       </div>
       <form className="bogart-modal__input-row" onSubmit={submitForm}>

@@ -124,7 +124,6 @@ export const submitConverterInput =
 
 const ConverterEmptyState = () => (
   <section className="converter-card__empty" aria-live="polite">
-    <span className="converter-card__empty-icon" aria-hidden="true" />
     <div>
       <h2>Ready for a conversion</h2>
       <p>Enter an amount, then choose the currencies to compare.</p>

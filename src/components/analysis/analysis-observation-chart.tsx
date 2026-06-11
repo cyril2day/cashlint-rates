@@ -15,13 +15,16 @@ const observationPoint = (point: PairChartPointDto) => ({
 
 const plottableObservationCount = (chart: PairChartViewModelDto) => chart.points.length >= 2
 
+const chartHeight = (chart: PairChartViewModelDto): number =>
+  Math.min(260, Math.max(150, (chart.points.length * 4) + 96))
+
 const populatedChart = (chart: PairChartViewModelDto): ReactNode => (
   <DotPlot
     ariaLabel={`${chart.tableCaption} dot plot`}
     className="analysis-observation-chart cr-analysis-observation-chart"
-    height={220}
+    height={chartHeight(chart)}
     plot={{ points: chart.points.map(observationPoint) }}
-    width={720}
+    width={640}
   />
 )
 
