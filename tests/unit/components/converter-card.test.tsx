@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConverterDashboard } from '@/components/conversion/converter-card'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
@@ -87,7 +87,9 @@ describe('ConverterCard', () => {
     render(<ConverterDashboard />)
 
     expect(screen.getByRole('form', { name: 'Currency converter' })).toBeInTheDocument()
-    expect(screen.getByText('Enter an amount and choose two currencies.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ready for a conversion' })).toBeInTheDocument()
+    expect(screen.getByText('Enter an amount, then choose the currencies to compare.')).toBeInTheDocument()
+    expect(screen.getByText('Use a positive amount for this conversion.')).toBeInTheDocument()
   })
 
   it('submits input and displays the server conversion result', async () => {
@@ -112,6 +114,16 @@ describe('ConverterCard', () => {
     expect(screen.queryByText('Questions about this result')).not.toBeInTheDocument()
   })
 
+  it('shows the loading state while conversion is pending', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)))
+
+    render(<ConverterDashboard />)
+    fireEvent.click(screen.getByRole('button', { name: 'Convert' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading latest reference rate.')
+    expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled()
+  })
+
   it('swaps the selected currencies', () => {
     render(<ConverterDashboard />)
 
@@ -126,6 +138,9 @@ describe('ConverterCard', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '-5' } })
     fireEvent.click(screen.getByRole('button', { name: 'Convert' }))
 
-    expect(await screen.findByText('Invalid amount')).toBeInTheDocument()
+    const alert = await screen.findByRole('alert')
+
+    expect(within(alert).getByText('Invalid amount')).toBeInTheDocument()
+    expect(within(alert).getByText('Use a positive amount for this conversion.')).toBeInTheDocument()
   })
 })

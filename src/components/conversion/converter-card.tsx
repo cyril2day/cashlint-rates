@@ -59,13 +59,13 @@ export const converterReducer = (_state: ConverterState, action: ConverterAction
 const clientValidationError: ApiFailureDto['error'] = {
   code: 'INVALID_AMOUNT',
   category: 'validation',
-  message: 'Enter an amount greater than 0.',
+  message: 'Use a positive amount for this conversion.',
   recoverable: true,
   fieldErrors: [
     {
       field: 'amount',
       code: 'INVALID_AMOUNT',
-      message: 'Enter an amount greater than 0.',
+      message: 'Use a positive amount for this conversion.',
     },
   ],
   details: [],
@@ -122,10 +122,20 @@ export const submitConverterInput =
     })(isPositiveAmount(input))
   }
 
+const ConverterEmptyState = () => (
+  <section className="converter-card__empty" aria-live="polite">
+    <span className="converter-card__empty-icon" aria-hidden="true" />
+    <div>
+      <h2>Ready for a conversion</h2>
+      <p>Enter an amount, then choose the currencies to compare.</p>
+    </div>
+  </section>
+)
+
 export const ConverterStateView = ({ state }: { readonly state: ConverterState }) =>
   matchTag<ConverterState, ReactNode>({
     failure: (failureState) => <ConverterError error={failureState.error} />,
-    initial: () => <p className="converter-card__note">Enter an amount and choose two currencies.</p>,
+    initial: () => <ConverterEmptyState />,
     loading: () => <p className="converter-card__note" role="status">Loading latest reference rate.</p>,
     success: (successState) => <ConverterResult result={successState.result} />,
   })(state)
@@ -167,7 +177,7 @@ export function ConverterCard({
           defaultValue="1000"
           aria-describedby="amount-helper"
         />
-        <span className="field__helper" id="amount-helper">Enter an amount greater than 0.</span>
+        <span className="field__helper" id="amount-helper">Use a positive amount for this conversion.</span>
       </label>
       <div className="converter-card__grid">
         <label className="field" htmlFor="converter-base">
