@@ -112,9 +112,8 @@ describe('AnalyseCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Analyse' }))
 
     await waitFor(() => {
-      expect(screen.getByText('EUR/JPY')).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'EUR/JPY reference-rate history' })).toHaveClass('cr-chart-panel')
     })
-    expect(screen.getByRole('region', { name: 'EUR/JPY reference-rate history' })).toHaveClass('cr-chart-panel')
     expect(screen.getByText('Chart ready')).toHaveClass('cr-chart-panel__status')
     expect(screen.getByText('EUR/JPY cleaned observations')).toBeInTheDocument()
     expect(screen.getByLabelText('Latest rate.')).toBeInTheDocument()

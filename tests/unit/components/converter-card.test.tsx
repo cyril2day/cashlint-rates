@@ -109,6 +109,7 @@ describe('ConverterCard', () => {
       'href',
       '/analyse?base=USD&quote=GBP',
     )
+    expect(screen.queryByText('Questions about this result')).not.toBeInTheDocument()
   })
 
   it('swaps the selected currencies', () => {
