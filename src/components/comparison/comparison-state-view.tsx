@@ -56,11 +56,35 @@ export const comparisonStateReducer = (
     }),
   })(action)
 
+function ComparisonStatusPanel({
+  children,
+}: {
+  readonly children: ReactNode
+}) {
+  return (
+    <section className="compare-layout__status" aria-live="polite">
+      {children}
+    </section>
+  )
+}
+
 export function ComparisonStateView({ state }: { readonly state: ComparisonState }) {
   return matchTag<ComparisonState, ReactNode>({
-    failure: (failureState) => <AnalysisError error={failureState.error} />,
-    initial: () => <p className="converter-card__note">Choose a base, quote currencies, and date range to compare.</p>,
-    loading: () => <p className="converter-card__note" role="status">Loading comparison reference rates.</p>,
+    failure: (failureState) => (
+      <ComparisonStatusPanel>
+        <AnalysisError error={failureState.error} />
+      </ComparisonStatusPanel>
+    ),
+    initial: () => (
+      <ComparisonStatusPanel>
+        <p className="converter-card__note">Choose a base, quote currencies, and date range to compare.</p>
+      </ComparisonStatusPanel>
+    ),
+    loading: () => (
+      <ComparisonStatusPanel>
+        <p className="converter-card__note" role="status">Loading comparison reference rates.</p>
+      </ComparisonStatusPanel>
+    ),
     success: (successState) => <ComparisonResult result={successState.result} />,
   })(state)
 }

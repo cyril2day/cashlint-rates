@@ -11,8 +11,8 @@ import type {
   RankedQuoteDto,
 } from '@/shared/dto/comparison'
 import { IndexedComparisonChart } from '@/components/charts'
-import { BogartPanel } from '@/components/bogart'
-import { fromNullable, matchBoolean, matchDtoTag, matchMaybe } from '@/shared/fp'
+import { useBogartResultAvailability } from '@/components/bogart'
+import { matchBoolean, matchDtoTag } from '@/shared/fp'
 
 const maybeMetricText = (metric: ComparisonMetricValueDto): string =>
   matchDtoTag<ComparisonMetricValueDto['displayValue'], string>({
@@ -136,31 +136,22 @@ function ComparisonQualityPanel({ rows }: { readonly rows: ReadonlyArray<Compari
 }
 
 export function ComparisonResult({ result }: { readonly result: ComparisonViewModelDto }) {
-  const effectiveNote = matchDtoTag<typeof result.dateRange.effective.note, string>({
-    Just: (note) => note.value,
-    Nothing: () => 'Selected dates used without alignment.',
-  })(result.dateRange.effective.note)
-  const sourceLabel = matchMaybe<string, string>({
-    none: () => result.attribution.label,
-    some: (firstCaveat) => firstCaveat,
-  })(fromNullable(result.caveats[0]))
+  useBogartResultAvailability(result.aiContextSeed)
 
   return (
-    <section className="analysis-result comparison-result" aria-live="polite">
-      <div className="analysis-result__header">
-        <p className="section__eyebrow">{result.base.code} comparison</p>
-        <h2>{result.quotes.map((quote) => quote.code).join(', ')}</h2>
-        <p>{result.insight}</p>
-        <p className="converter-card__note">
-          Effective range: {result.dateRange.effective.startDate} to {result.dateRange.effective.endDate}. {effectiveNote}
-        </p>
-      </div>
-      <ComparisonHighlights result={result} />
-      <ComparisonChartPanel chart={result.chart} />
-      <ComparisonRowsTable result={result} />
-      <ComparisonQualityPanel rows={result.rows} />
-      <BogartPanel context={result.aiContextSeed} />
-      <p className="converter-card__note">{sourceLabel}</p>
-    </section>
+    <>
+      <section className="compare-layout__chart" aria-live="polite">
+        <ComparisonChartPanel chart={result.chart} />
+      </section>
+      <section className="compare-layout__full" aria-label="Comparison highlights">
+        <ComparisonHighlights result={result} />
+      </section>
+      <section className="compare-layout__full" aria-label="Comparison details">
+        <ComparisonRowsTable result={result} />
+      </section>
+      <section className="compare-layout__full" aria-label="Per-quote data quality">
+        <ComparisonQualityPanel rows={result.rows} />
+      </section>
+    </>
   )
 }

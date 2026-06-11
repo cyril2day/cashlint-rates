@@ -70,44 +70,42 @@ export function CompareCard({
   const submitDisabled = anyTrue([loading, selectedQuotes.length === 0])
 
   return (
-    <form
-      className="converter-card analysis-card"
-      aria-label="Currency comparison"
-      onSubmit={(event) => {
-        event.preventDefault()
-        submitInput(dispatch)(
-          toCompareRequest(base, selectedQuotes, dateRangeChoice, { startDate, endDate }),
-        )
-      }}
-    >
-      <div className="converter-card__header">
-        <h2>Compare quotes</h2>
-        <p>Rebase each selected quote to 100 and compare movement over the same date range.</p>
-      </div>
-      <ComparisonQuoteFields
-        base={base}
-        currencyCodes={currencyCodes}
-        onBaseChange={setBase}
-        onQuoteCandidateChange={setQuoteCandidate}
-        onQuotesChange={setSelectedQuotes}
-        quoteCandidate={quoteCandidate}
-        selectedQuotes={selectedQuotes}
-      />
-      <AnalysisDateRangeFields
-        customRange={{ startDate, endDate }}
-        dateRangeChoice={dateRangeChoice}
-        setDateRangeChoice={setDateRangeChoice}
-        setEndDate={setEndDate}
-        setStartDate={setStartDate}
-      />
-      <button className="button" disabled={submitDisabled} type="submit">
-        Compare
-      </button>
-      {matchBoolean({
-        false: () => null,
-        true: () => <p className="converter-card__note">Select at least one quote currency to run a comparison.</p>,
-      })(selectedQuotes.length === 0)}
+    <main className="compare-layout">
+      <form
+        className="converter-card analysis-card compare-layout__form"
+        aria-label="Currency comparison"
+        onSubmit={(event) => {
+          event.preventDefault()
+          submitInput(dispatch)(
+            toCompareRequest(base, selectedQuotes, dateRangeChoice, { startDate, endDate }),
+          )
+        }}
+      >
+        <ComparisonQuoteFields
+          base={base}
+          currencyCodes={currencyCodes}
+          onBaseChange={setBase}
+          onQuoteCandidateChange={setQuoteCandidate}
+          onQuotesChange={setSelectedQuotes}
+          quoteCandidate={quoteCandidate}
+          selectedQuotes={selectedQuotes}
+        />
+        <AnalysisDateRangeFields
+          customRange={{ startDate, endDate }}
+          dateRangeChoice={dateRangeChoice}
+          setDateRangeChoice={setDateRangeChoice}
+          setEndDate={setEndDate}
+          setStartDate={setStartDate}
+        />
+        <button className="button" disabled={submitDisabled} type="submit">
+          Compare
+        </button>
+        {matchBoolean({
+          false: () => null,
+          true: () => <p className="converter-card__note">Select at least one quote currency to run a comparison.</p>,
+        })(selectedQuotes.length === 0)}
+      </form>
       <ComparisonStateView state={state} />
-    </form>
+    </main>
   )
 }

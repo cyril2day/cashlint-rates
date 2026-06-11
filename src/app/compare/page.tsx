@@ -43,20 +43,10 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   const initialQuotes = supportedQuotes(params)
 
   return (
-    <main>
-      <section className="section">
-        <p className="section__eyebrow">Comparison</p>
-        <h1>Compare up to ten quote currencies</h1>
-        <p>
-          Rebase selected quote currencies to an index of 100, compare their movement, and keep partial
-          data visible instead of hiding the awkward bits.
-        </p>
-        <CompareCard
-          currencyCodes={defaultSupportedCurrencyCodes}
-          initialBase={initialBase}
-          initialQuotes={initialQuotes}
-        />
-      </section>
-    </main>
+    <CompareCard
+      currencyCodes={defaultSupportedCurrencyCodes}
+      initialBase={initialBase}
+      initialQuotes={initialQuotes}
+    />
   )
 }
