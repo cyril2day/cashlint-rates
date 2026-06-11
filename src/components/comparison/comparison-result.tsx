@@ -4,11 +4,8 @@ import type { ReactNode } from 'react'
 import { useId } from 'react'
 import type {
   ComparisonMetricValueDto,
-  ComparisonQuoteInclusionDto,
-  ComparisonQuoteRowDto,
   ComparisonViewModelDto,
   IndexedComparisonChartViewModelDto,
-  RankedQuoteDto,
 } from '@/shared/dto/comparison'
 import { IndexedComparisonChart } from '@/components/charts'
 import { useBogartResultAvailability } from '@/components/bogart'
@@ -25,61 +22,13 @@ const maybeMetricText = (metric: ComparisonMetricValueDto): string =>
       })(metric.availability),
   })(metric.displayValue)
 
-const inclusionText = (inclusion: ComparisonQuoteInclusionDto): string =>
-  matchDtoTag<ComparisonQuoteInclusionDto, string>({
-    ExcludedFromRankings: (excluded) => excluded.reason.replaceAll('-', ' '),
-    IncludedInRankings: () => 'Included in rankings',
-  })(inclusion)
-
-const rankedQuoteText = (label: string, rankedQuote: RankedQuoteDto): ReactNode => (
-  <article className="comparison-highlight">
-    <span>{label}</span>
-    <strong>{rankedQuote.quote.code}</strong>
-    <p>{maybeMetricText(rankedQuote.metric)}</p>
-  </article>
-)
-
-function ComparisonHighlights({ result }: { readonly result: ComparisonViewModelDto }) {
-  const stable = matchDtoTag<typeof result.rankings.mostStableQuote, ReactNode>({
-    Just: (ranked) => rankedQuoteText('Most stable', ranked.value),
-    Nothing: () => null,
-  })(result.rankings.mostStableQuote)
-  const variable = matchDtoTag<typeof result.rankings.mostVariableQuote, ReactNode>({
-    Just: (ranked) => rankedQuoteText('Most variable', ranked.value),
-    Nothing: () => null,
-  })(result.rankings.mostVariableQuote)
-  const hasRankableData = result.rankings.periodMovementAscending.length > 0
-
-  return (
-    <section className="comparison-highlights" aria-label="Comparison highlights">
-      {stable}
-      {variable}
-      {matchBoolean<ReactNode>({
-        false: () => (
-          <article className="comparison-highlight comparison-highlight--wide">
-            <span>No rankable data</span>
-            <strong>No quote met the ranking rules.</strong>
-            <p>Partial, same-currency, unavailable, and insufficient rows remain visible below.</p>
-          </article>
-        ),
-        true: () => null,
-      })(hasRankableData)}
-    </section>
-  )
-}
-
 function ComparisonChartPanel({ chart }: { readonly chart: IndexedComparisonChartViewModelDto }) {
   const summaryId = useId()
   const titleId = useId()
-  const statusText = matchBoolean<string>({
-    false: () => 'Chart unavailable',
-    true: () => 'Chart ready',
-  })(chart.points.length > 0)
 
   return (
     <div className="chart-panel cr-chart-panel" aria-describedby={summaryId} aria-labelledby={titleId} role="region">
       <h3 id={titleId}>{chart.title}</h3>
-      <span className="chart-panel__status cr-chart-panel__status">{statusText}</span>
       <p className="chart-panel__summary cr-chart-panel__summary" id={summaryId}>{chart.summary}</p>
       {matchBoolean<ReactNode>({
         false: () => <p className="analysis-result__empty">No indexed observations to chart.</p>,
@@ -99,8 +48,6 @@ function ComparisonRowsTable({ result }: { readonly result: ComparisonViewModelD
           <th scope="col">Latest rate</th>
           <th scope="col">Period movement</th>
           <th scope="col">Relative variability</th>
-          <th scope="col">Ranking state</th>
-          <th scope="col">Data quality</th>
         </tr>
       </thead>
       <tbody>
@@ -110,28 +57,10 @@ function ComparisonRowsTable({ result }: { readonly result: ComparisonViewModelD
             <td>{maybeMetricText(row.latestReferenceRate)}</td>
             <td>{maybeMetricText(row.periodMovement)}</td>
             <td>{maybeMetricText(row.relativeVariability)}</td>
-            <td>{inclusionText(row.inclusion)}</td>
-            <td>{row.dataQuality.status.replaceAll('-', ' ')}</td>
           </tr>
         ))}
       </tbody>
     </table>
-  )
-}
-
-function ComparisonQualityPanel({ rows }: { readonly rows: ReadonlyArray<ComparisonQuoteRowDto> }) {
-  return (
-    <section className="analysis-result__quality">
-      <h3>Per-quote data quality</h3>
-      <dl>
-        {rows.map((row) => (
-          <div key={row.quote.code}>
-            <dt>{row.quote.code}</dt>
-            <dd>{row.dataQuality.messages.join(' ')}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
   )
 }
 
@@ -143,14 +72,8 @@ export function ComparisonResult({ result }: { readonly result: ComparisonViewMo
       <section className="compare-layout__chart" aria-live="polite">
         <ComparisonChartPanel chart={result.chart} />
       </section>
-      <section className="compare-layout__full" aria-label="Comparison highlights">
-        <ComparisonHighlights result={result} />
-      </section>
       <section className="compare-layout__full" aria-label="Comparison details">
         <ComparisonRowsTable result={result} />
-      </section>
-      <section className="compare-layout__full" aria-label="Per-quote data quality">
-        <ComparisonQualityPanel rows={result.rows} />
       </section>
     </>
   )
