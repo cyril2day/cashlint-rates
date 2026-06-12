@@ -34,9 +34,19 @@ const margin = {
 
 const dotRadius = 4
 const stackGap = 3
+const defaultDotStep = (dotRadius * 2) + stackGap
 
 const allValues = (plot: ValidatedDotPlot): ReadonlyArray<number> =>
   plot.points.map((point) => point.yValue)
+
+const maximumStackIndex = (stackIndexes: ReadonlyArray<number>): number =>
+  stackIndexes.reduce((maximum, stackIndex) => Math.max(maximum, stackIndex), 0)
+
+const fittedDotStep = (baselineY: number, plotTop: number, maximumStack: number): number =>
+  matchBoolean<number>({
+    false: () => defaultDotStep,
+    true: () => Math.min(defaultDotStep, (baselineY - plotTop) / maximumStack),
+  })(maximumStack > 0)
 
 const numberOrDefault =
   (fallback: number) =>
@@ -147,7 +157,8 @@ export const buildDotPlotModel = (
   const centreForValue = (value: number): number =>
     binMidpoint(domainMinimum, widthValue, indexForValue(value))
   const stackAt = stackIndex(plot.points, indexForValue)
-  const dotStep = (dotRadius * 2) + stackGap
+  const stackIndexes = plot.points.map(stackAt)
+  const dotStep = fittedDotStep(baselineY, margin.top, maximumStackIndex(stackIndexes))
   const tickValues = scaleLinear()
     .domain([minimum, maximum])
     .nice()
