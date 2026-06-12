@@ -1,14 +1,15 @@
 'use client'
 
-import { useReducer, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import type { Dispatch } from 'react'
 import { AnalysisDateRangeFields } from '@/components/analysis/analysis-date-range-fields'
 import type { DateRangeChoice } from '@/components/analysis/analysis-form-model'
+import { usePageMemory } from '@/components/page-memory'
 import type { CompareRequestDto } from '@/shared/dto/comparison'
-import { anyTrue, fromNullable, isFalse, matchBoolean, matchMaybe } from '@/shared/fp'
+import { allTrue, anyTrue, fromNullable, isFalse, matchBoolean, matchMaybe } from '@/shared/fp'
 import { matchCompareClientResult, postCompareRequest } from './compare-api-client'
 import { ComparisonQuoteFields } from './comparison-quote-fields'
-import type { ComparisonAction } from './comparison-state-view'
+import type { ComparisonAction, ComparisonState } from './comparison-state-view'
 import {
   ComparisonStateView,
   comparisonStateReducer,
@@ -50,24 +51,74 @@ const firstQuote = (currencyCodes: ReadonlyArray<string>, selectedQuotes: Readon
     some: (code) => code,
   })(fromNullable(currencyCodes.find((code) => isFalse(selectedQuotes.includes(code)))))
 
+const rememberableComparisonState = (state: ComparisonState): ComparisonState =>
+  matchBoolean<ComparisonState>({
+    false: () => state,
+    true: () => initialComparisonState,
+  })(state.tag === 'loading')
+
 export function CompareCard({
   currencyCodes,
   initialBase,
   initialQuotes,
+  seededFromSearchParams = false,
 }: {
   readonly currencyCodes: ReadonlyArray<string>
   readonly initialBase: string
   readonly initialQuotes: ReadonlyArray<string>
+  readonly seededFromSearchParams?: boolean
 }) {
-  const [state, dispatch] = useReducer(comparisonStateReducer, initialComparisonState)
-  const [base, setBase] = useState(initialBase)
-  const [selectedQuotes, setSelectedQuotes] = useState(initialQuotes)
-  const [quoteCandidate, setQuoteCandidate] = useState(firstQuote(currencyCodes, initialQuotes))
-  const [dateRangeChoice, setDateRangeChoice] = useState<DateRangeChoice>('30D')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const { available, compare, setCompare } = usePageMemory()
+  const useRememberedValues = allTrue([available, isFalse(seededFromSearchParams)])
+  const rememberedState = matchBoolean({
+    false: () => initialComparisonState,
+    true: () => compare.state,
+  })(useRememberedValues)
+  const rememberedBase = matchBoolean({
+    false: () => initialBase,
+    true: () => compare.base,
+  })(useRememberedValues)
+  const rememberedSelectedQuotes = matchBoolean({
+    false: () => initialQuotes,
+    true: () => compare.selectedQuotes,
+  })(useRememberedValues)
+  const rememberedQuoteCandidate = matchBoolean({
+    false: () => firstQuote(currencyCodes, initialQuotes),
+    true: () => compare.quoteCandidate,
+  })(useRememberedValues)
+  const rememberedDateRangeChoice = matchBoolean<DateRangeChoice>({
+    false: () => '30D',
+    true: () => compare.dateRangeChoice,
+  })(useRememberedValues)
+  const rememberedStartDate = matchBoolean({
+    false: () => '',
+    true: () => compare.startDate,
+  })(useRememberedValues)
+  const rememberedEndDate = matchBoolean({
+    false: () => '',
+    true: () => compare.endDate,
+  })(useRememberedValues)
+  const [state, dispatch] = useReducer(comparisonStateReducer, rememberedState)
+  const [base, setBase] = useState(rememberedBase)
+  const [selectedQuotes, setSelectedQuotes] = useState(rememberedSelectedQuotes)
+  const [quoteCandidate, setQuoteCandidate] = useState(rememberedQuoteCandidate)
+  const [dateRangeChoice, setDateRangeChoice] = useState<DateRangeChoice>(rememberedDateRangeChoice)
+  const [startDate, setStartDate] = useState(rememberedStartDate)
+  const [endDate, setEndDate] = useState(rememberedEndDate)
   const loading = state.tag === 'loading'
   const submitDisabled = anyTrue([loading, selectedQuotes.length === 0])
+
+  useEffect(() => {
+    setCompare({
+      base,
+      dateRangeChoice,
+      endDate,
+      quoteCandidate,
+      selectedQuotes,
+      startDate,
+      state: rememberableComparisonState(state),
+    })
+  }, [base, dateRangeChoice, endDate, quoteCandidate, selectedQuotes, setCompare, startDate, state])
 
   return (
     <main className="compare-layout">

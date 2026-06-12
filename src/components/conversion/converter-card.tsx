@@ -1,7 +1,8 @@
 'use client'
 
-import { useReducer, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import type { Dispatch, ReactNode } from 'react'
+import { usePageMemory } from '@/components/page-memory'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
 import type { ApiFailureDto } from '@/shared/dto/api'
 import type { ConvertRequestDto, ConversionViewModelDto } from '@/shared/dto/conversion'
@@ -139,6 +140,14 @@ export const ConverterStateView = ({ state }: { readonly state: ConverterState }
     success: (successState) => <ConverterResult result={successState.result} />,
   })(state)
 
+const rememberableConverterState = (state: ConverterState): ConverterState =>
+  matchTag<ConverterState, ConverterState>({
+    failure: (failureState) => failureState,
+    initial: () => initialConverterState,
+    loading: () => initialConverterState,
+    success: (successState) => successState,
+  })(state)
+
 type ConverterCardProps = {
   readonly base: string
   readonly quote: string
@@ -232,10 +241,19 @@ export function ConverterCard({
 }
 
 export function ConverterDashboard() {
-  const [state, dispatch] = useReducer(converterReducer, initialConverterState)
-  const [base, setBase] = useState('USD')
-  const [quote, setQuote] = useState('GBP')
+  const { converter, setConverter } = usePageMemory()
+  const [state, dispatch] = useReducer(converterReducer, converter.state)
+  const [base, setBase] = useState(converter.base)
+  const [quote, setQuote] = useState(converter.quote)
   const loading = state.tag === 'loading'
+
+  useEffect(() => {
+    setConverter({
+      base,
+      quote,
+      state: rememberableConverterState(state),
+    })
+  }, [base, quote, setConverter, state])
 
   return (
     <main className="home-layout">

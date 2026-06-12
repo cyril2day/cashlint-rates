@@ -1,9 +1,10 @@
 'use client'
 
-import { useReducer, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import type { Dispatch, ReactNode } from 'react'
+import { usePageMemory } from '@/components/page-memory'
 import type { AnalyseRequestDto } from '@/shared/dto/analysis'
-import { matchTag } from '@/shared/fp'
+import { allTrue, isFalse, matchBoolean, matchTag } from '@/shared/fp'
 import { AnalysisDataQualitySummary } from './analysis-data-quality-panel'
 import type { AnalyseAction, AnalyseState } from './analysis-state-view'
 import { AnalysisCurrencyFields } from './analysis-currency-fields'
@@ -49,22 +50,69 @@ const formQualitySummary = (state: AnalyseState): ReactNode =>
     success: (successState) => <AnalysisDataQualitySummary dataQuality={successState.result.dataQuality} />,
   })(state)
 
+const rememberableAnalyseState = (state: AnalyseState): AnalyseState =>
+  matchTag<AnalyseState, AnalyseState>({
+    failure: (failureState) => failureState,
+    initial: () => initialAnalyseState,
+    loading: () => initialAnalyseState,
+    success: (successState) => successState,
+  })(state)
+
 export function AnalyseCard({
   currencyCodes,
   initialBase,
   initialQuote,
+  seededFromSearchParams = false,
 }: {
   readonly currencyCodes: ReadonlyArray<string>
   readonly initialBase: string
   readonly initialQuote: string
+  readonly seededFromSearchParams?: boolean
 }) {
-  const [state, dispatch] = useReducer(analyseStateReducer, initialAnalyseState)
-  const [base, setBase] = useState(initialBase)
-  const [quote, setQuote] = useState(initialQuote)
-  const [dateRangeChoice, setDateRangeChoice] = useState<DateRangeChoice>('30D')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const { analyse, available, setAnalyse } = usePageMemory()
+  const useRememberedValues = allTrue([available, isFalse(seededFromSearchParams)])
+  const rememberedState = matchBoolean<AnalyseState>({
+    false: () => initialAnalyseState,
+    true: () => analyse.state,
+  })(useRememberedValues)
+  const rememberedBase = matchBoolean<string>({
+    false: () => initialBase,
+    true: () => analyse.base,
+  })(useRememberedValues)
+  const rememberedQuote = matchBoolean<string>({
+    false: () => initialQuote,
+    true: () => analyse.quote,
+  })(useRememberedValues)
+  const rememberedDateRangeChoice = matchBoolean<DateRangeChoice>({
+    false: () => '30D',
+    true: () => analyse.dateRangeChoice,
+  })(useRememberedValues)
+  const rememberedStartDate = matchBoolean<string>({
+    false: () => '',
+    true: () => analyse.startDate,
+  })(useRememberedValues)
+  const rememberedEndDate = matchBoolean<string>({
+    false: () => '',
+    true: () => analyse.endDate,
+  })(useRememberedValues)
+  const [state, dispatch] = useReducer(analyseStateReducer, rememberedState)
+  const [base, setBase] = useState(rememberedBase)
+  const [quote, setQuote] = useState(rememberedQuote)
+  const [dateRangeChoice, setDateRangeChoice] = useState<DateRangeChoice>(rememberedDateRangeChoice)
+  const [startDate, setStartDate] = useState(rememberedStartDate)
+  const [endDate, setEndDate] = useState(rememberedEndDate)
   const loading = state.tag === 'loading'
+
+  useEffect(() => {
+    setAnalyse({
+      base,
+      dateRangeChoice,
+      endDate,
+      quote,
+      startDate,
+      state: rememberableAnalyseState(state),
+    })
+  }, [base, dateRangeChoice, endDate, quote, setAnalyse, startDate, state])
 
   return (
     <main className="analyse-layout">
