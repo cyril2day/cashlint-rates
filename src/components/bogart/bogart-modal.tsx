@@ -7,6 +7,7 @@ import { allTrue, fromNullable, matchBoolean, matchMaybe, none, some } from '@/s
 import type { Maybe } from '@/shared/fp'
 import { BogartChat } from './bogart-chat'
 import { useBogartFocusTrap } from './bogart-focus-trap'
+import { BogartBulldogIcon, CloseIcon } from './bogart-icons'
 
 type BogartModalState = 'open' | 'closing'
 
@@ -194,9 +195,19 @@ export function BogartModal({
         tabIndex={-1}
       >
         <header className="bogart-modal__header">
-          <h2 id={titleId}>Bogart</h2>
-          <button className="button button--secondary" onClick={onRequestClose} type="button">
-            Close
+          <div className="bogart-modal__identity">
+            <span aria-hidden="true" className="bogart-modal__portrait">
+              <BogartBulldogIcon className="bogart-modal__portrait-image" flipped />
+            </span>
+            <h2 id={titleId}>Bogart</h2>
+          </div>
+          <button
+            aria-label="Close"
+            className="button button--secondary bogart-modal__close"
+            onClick={onRequestClose}
+            type="button"
+          >
+            <CloseIcon />
           </button>
         </header>
         <p className="bogart-modal__context" id={contextId}>Context: {contextLabel}</p>

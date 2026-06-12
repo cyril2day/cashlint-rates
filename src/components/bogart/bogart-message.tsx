@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { formatDateTimeDateReadable } from '@/shared/date'
 import type { ApiFailureDto } from '@/shared/dto/api'
 import type { BogartResponseViewModelDto } from '@/shared/dto/bogart'
 import { matchBoolean, matchDtoTag, matchTag } from '@/shared/fp'
@@ -39,7 +40,7 @@ function BogartResponseMessage({
     ),
     BogartDailyLimitReached: (limit) => (
       <article className="bogart-message bogart-message--limit">
-        <p>Daily question limit reached. Try again after {limit.resetAt}.</p>
+        <p>Daily question limit reached. Try again after {formatDateTimeDateReadable(limit.resetAt)}.</p>
       </article>
     ),
     BogartRefusal: (refusal) => (

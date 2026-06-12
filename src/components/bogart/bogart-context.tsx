@@ -192,21 +192,21 @@ const placeholderForPage: Readonly<Record<BogartPageContext['page'], string>> = 
 
 const suggestionsForPage: Readonly<Record<BogartPageContext['page'], ReadonlyArray<string>>> = {
   analyse: [
-    'Explain this chart',
-    'What does typical movement mean?',
-    'Summarise these statistics',
-    'Why is this metric unavailable?',
+    'Explain this chart in plain English',
+    'Summarise the main takeaway from these statistics',
+    'Help me understand typical movement here',
+    'Why might this metric be unavailable?',
   ],
   compare: [
-    'Explain this comparison',
-    'Why was this quote excluded?',
-    'What does relative variability mean?',
-    'Summarise the ranking',
+    'Explain this comparison in plain English',
+    'Summarise the ranking and what it means',
+    'Help me understand relative variability here',
+    'Why might a quote be excluded?',
   ],
   home: [
-    'Explain this result',
-    'What affects this rate?',
-    'How was this calculated?',
+    'Explain this conversion result in plain English',
+    'Show me how this was calculated',
+    'What should I notice about this reference rate?',
   ],
 }
 

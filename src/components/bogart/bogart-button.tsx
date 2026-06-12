@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
 import type { BogartResultContextDto } from '@/shared/dto/bogart'
 import { useBogartContext } from './bogart-context'
+import { BogartBulldogIcon } from './bogart-icons'
 import { BogartModal } from './bogart-modal'
 
 type BogartModalState = 'closed' | 'open' | 'closing'
@@ -96,7 +97,9 @@ export function BogartButton() {
           ref={buttonRef}
           type="button"
         >
-          <span aria-hidden="true" className="bogart-button__icon">?</span>
+          <span aria-hidden="true" className="bogart-button__icon">
+            <BogartBulldogIcon />
+          </span>
           <span className="bogart-button__tooltip" role="tooltip">Ask Bogart</span>
         </button>
         {matchMaybe<BogartResultContextDto, ReactNode>({

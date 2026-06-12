@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode, SyntheticEvent } from 'react'
 import type { BogartResponseViewModelDto, BogartResultContextDto } from '@/shared/dto/bogart'
-import { anyTrue, fromNullable, matchBoolean, matchDtoTag, matchMaybe } from '@/shared/fp'
+import { allTrue, anyTrue, fromNullable, isFalse, matchBoolean, matchDtoTag, matchMaybe } from '@/shared/fp'
 import { matchBogartClientResult, postBogartRequest } from './bogart-api-client'
 import { BogartMessage } from './bogart-message'
 import type { BogartChatMessage } from './bogart-message'
@@ -54,9 +54,42 @@ const appendMessage =
 
 const emptyState = (): ReactNode => (
   <div className="bogart-chat__empty">
-    <p>Ask Bogart about the current result, chart, or statistics.</p>
+    <p>Ask about the current result, chart, or statistics.</p>
   </div>
 )
+
+const messageKey = (message: BogartChatMessage, index: number): string =>
+  `${message.tag}-${index.toString()}`
+
+const focusQuestionInput = (input: HTMLTextAreaElement | null): undefined => {
+  matchMaybe<HTMLTextAreaElement, undefined>({
+    none: () => undefined,
+    some: (element) => {
+      element.focus()
+      return undefined
+    },
+  })(fromNullable(input))
+
+  return undefined
+}
+
+const shouldSubmitFromTextarea = (event: KeyboardEvent<HTMLTextAreaElement>): boolean =>
+  allTrue([event.key === 'Enter', isFalse(event.shiftKey)])
+
+const canScrollIntoView = (element: HTMLDivElement): boolean =>
+  typeof element.scrollIntoView === 'function'
+
+const scrollElementIntoView = (element: HTMLDivElement): undefined => {
+  matchBoolean<undefined>({
+    false: () => undefined,
+    true: () => {
+      element.scrollIntoView({ block: 'end' })
+      return undefined
+    },
+  })(canScrollIntoView(element))
+
+  return undefined
+}
 
 export function BogartChat({
   context,
@@ -67,6 +100,8 @@ export function BogartChat({
   readonly placeholder: string
   readonly suggestions: ReadonlyArray<string>
 }) {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const questionRef = useRef<HTMLTextAreaElement>(null)
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState<ReadonlyArray<BogartChatMessage>>([])
   const [status, setStatus] = useState<BogartChatStatus>({ tag: 'idle' })
@@ -77,6 +112,15 @@ export function BogartChat({
   const addMessage = (message: BogartChatMessage): void => {
     setMessages(appendMessage(message))
   }
+
+  useEffect(() => {
+    matchMaybe<HTMLDivElement, undefined>({
+      none: () => undefined,
+      some: scrollElementIntoView,
+    })(fromNullable(messagesEndRef.current))
+
+    return undefined
+  }, [messages, loading])
 
   const receiveResponse = (response: BogartResponseViewModelDto): undefined => {
     addMessage({ tag: 'response', response })
@@ -121,7 +165,7 @@ export function BogartChat({
     sendQuestion(question)
   }
 
-  const submitOnEnter = (event: KeyboardEvent<HTMLInputElement>): undefined => {
+  const submitOnEnter = (event: KeyboardEvent<HTMLTextAreaElement>): undefined => {
     matchBoolean<undefined>({
       false: () => undefined,
       true: () => {
@@ -129,27 +173,33 @@ export function BogartChat({
         sendQuestion(question)
         return undefined
       },
-    })(event.key === 'Enter')
+    })(shouldSubmitFromTextarea(event))
 
     return undefined
+  }
+
+  const draftSuggestion = (suggestion: string): void => {
+    setQuestion(suggestion)
+    focusQuestionInput(questionRef.current)
   }
 
   return (
     <>
       <div className="bogart-modal__messages" aria-live="polite" tabIndex={0}>
         {matchBoolean<ReactNode>({
-          false: () => messages.map((message) => <BogartMessage key={`${message.tag}-${messages.indexOf(message).toString()}`} message={message} />),
+          false: () => messages.map((message, index) => <BogartMessage key={messageKey(message, index)} message={message} />),
           true: emptyState,
         })(messages.length === 0)}
         {matchBoolean<ReactNode>({
           false: () => null,
           true: () => <p className="converter-card__note" role="status">Preparing response...</p>,
         })(loading)}
+        <div aria-hidden="true" ref={messagesEndRef} />
       </div>
       <form className="bogart-modal__input-row" onSubmit={submitForm}>
         <label className="screen-reader-only" htmlFor="bogart-modal-question">Question</label>
-        <input
-          className="field__control"
+        <textarea
+          className="field__control bogart-modal__question"
           disabled={limitReached}
           id="bogart-modal-question"
           maxLength={500}
@@ -158,7 +208,8 @@ export function BogartChat({
           }}
           onKeyDown={submitOnEnter}
           placeholder={placeholder}
-          type="text"
+          ref={questionRef}
+          rows={3}
           value={question}
         />
         <button className="button" disabled={sendDisabled} type="submit">
@@ -166,7 +217,7 @@ export function BogartChat({
         </button>
       </form>
       {matchBoolean<ReactNode>({
-        false: () => <BogartSuggestions disabled={loading} onSelect={sendQuestion} suggestions={suggestions} />,
+        false: () => <BogartSuggestions disabled={loading} onSelect={draftSuggestion} suggestions={suggestions} />,
         true: () => <p className="converter-card__note">10 of 10 questions used today.</p>,
       })(limitReached)}
     </>

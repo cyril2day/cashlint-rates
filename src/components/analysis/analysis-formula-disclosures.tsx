@@ -152,7 +152,7 @@ export function AnalysisFormulaDisclosures({
 
   return (
     <div className="analysis-result__formulas">
-      <h3>Formula details</h3>
+      <h3>Other details</h3>
       <div className="formula-card-grid cr-formula-card-grid">
         {explanations.map((explanation) => (
           <FormulaCard

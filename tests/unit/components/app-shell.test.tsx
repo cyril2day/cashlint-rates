@@ -131,7 +131,7 @@ describe('AppShell', () => {
 
     const closeButton = await screen.findByRole('button', { name: 'Close' })
     const input = screen.getByLabelText('Question')
-    const finalSuggestion = screen.getByRole('button', { name: 'Why is this metric unavailable?' })
+    const finalSuggestion = screen.getByRole('button', { name: 'Why might this metric be unavailable?' })
 
     await waitFor(() => {
       expect(closeButton).toHaveFocus()
@@ -174,14 +174,29 @@ describe('AppShell', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
-    await waitFor(() => {
-      expect(screen.getAllByText('Explain this chart')).toHaveLength(2)
-    })
+    expect(await screen.findByText('Explain this chart')).toBeInTheDocument()
     expect(await screen.findByText('This result compares the latest reference-rate movement.')).toBeInTheDocument()
     expect(screen.getByText('9 Bogart questions left today.')).toBeInTheDocument()
     expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/bogart', expect.objectContaining({
       method: 'POST',
     }))
+  })
+
+  it('copies a Bogart suggestion into the question draft without sending it', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+
+    render(
+      <AppShell>
+        <ResultContent />
+      </AppShell>,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ask Bogart' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Explain this chart in plain English' }))
+
+    expect(screen.getByLabelText('Question')).toHaveValue('Explain this chart in plain English')
+    expect(screen.getByLabelText('Question').tagName).toBe('TEXTAREA')
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled()
   })
 
   it('renders the daily limit state in the Bogart modal chat', async () => {
@@ -212,7 +227,7 @@ describe('AppShell', () => {
     })
     fireEvent.keyDown(screen.getByLabelText('Question'), { key: 'Enter' })
 
-    expect(await screen.findByText('Daily question limit reached. Try again after 2026-06-12T00:00:00.000Z.')).toBeInTheDocument()
+    expect(await screen.findByText('Daily question limit reached. Try again after June 12, 2026.')).toBeInTheDocument()
     expect(screen.getByText('10 of 10 questions used today.')).toBeInTheDocument()
     expect(screen.getByLabelText('Question')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
