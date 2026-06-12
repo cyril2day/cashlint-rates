@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai'
 import type { AIExplanationInput, AIExplanationProvider, AIExplanationProviderError } from '@/server/ports/ai-explanation-provider'
 import type { BogartResultContextDto } from '@/shared/dto/bogart'
 import type { FormulaSummary } from '@/server/domain/formulas/formula-registry'
+import { formatDateReadable } from '@/shared/date'
 import { failure, fromNullable, matchBoolean, matchDtoTag, matchMaybe, success, type AsyncResult } from '@/shared/fp'
 
 // ---------------------------------------------------------------------------
@@ -29,10 +30,13 @@ const systemPrompt = [
   '4. Never give probability estimates, odds, or likelihood statements about future rates.',
   '5. Never say whether a rate is good, bad, best, or worst.',
   '6. If the user asks about anything outside the displayed result, politely decline and redirect to the shown data.',
-  '7. Be concise. Answer in plain English. Prefer 2-5 sentences.',
+  '7. Answer in plain English with meaningful wording. Prefer 3-8 sentences when the question benefits from explanation.',
   '8. Reference specific values from the data shown when they help the explanation.',
   '9. Use the mode label (conversion, pair analysis, comparison) to frame your answer.',
   '10. When discussing movement, always ground it in the observed historical period shown.',
+'11. Format dates in a user-friendly way, for example "June 9, 2026" rather than raw ISO strings.',
+'12. Make the response easy to read: use short paragraphs or compact bullet points when that is clearer.',
+'13. When chart context is provided, treat it as describing the visible chart in the app. Do not say no visual charts are displayed.',
 ].join('\n')
 
 // ---------------------------------------------------------------------------
@@ -48,7 +52,7 @@ const modeLabel: Readonly<Record<BogartResultContextDto['mode'], string>> = {
 const dateRangeLine = (context: BogartResultContextDto): string =>
   matchDtoTag<typeof context.selectedDateRange, string>({
     Just: (range) =>
-      `Effective period: ${range.value.startDate} to ${range.value.endDate}.`,
+      `Effective period: ${formatDateReadable(range.value.startDate)} to ${formatDateReadable(range.value.endDate)}.`,
     Nothing: () =>
       'No historical period is selected for this result.',
   })(context.selectedDateRange)
@@ -59,10 +63,23 @@ const keyResultsLines = (context: BogartResultContextDto): string =>
     .join('\n')
 
 const chartLine = (context: BogartResultContextDto): string =>
-  matchDtoTag<typeof context.chartSummary, string>({
-    Just: (summary) => `Chart summary: ${summary.value}`,
-    Nothing: () => '',
-  })(context.chartSummary)
+  matchDtoTag<typeof context.chartContext, string>({
+    Just: (chart) => [
+      'Visible chart:',
+      `• Title: ${chart.value.title}`,
+      `• Type: ${chart.value.chartType}`,
+      `• Visual encoding: ${chart.value.visualEncoding}`,
+      `• X-axis: ${chart.value.xAxis}`,
+      `• Y-axis: ${chart.value.yAxis}`,
+      `• Series: ${chart.value.series.join(', ')}`,
+      `• Plain-English reading: ${chart.value.plainEnglishDescription}`,
+    ].join('\n'),
+    Nothing: () =>
+      matchDtoTag<typeof context.chartSummary, string>({
+        Just: (summary) => `Chart summary: ${summary.value}`,
+        Nothing: () => '',
+      })(context.chartSummary),
+  })(context.chartContext)
 
 // dataQualityStatus is common to both pair-analysis and comparison computedStats.
 // The conversion mode has MaybeDto<never> (perpetually Nothing), so the union
@@ -115,7 +132,7 @@ const promptBlocks = (input: AIExplanationInput): ReadonlyArray<string> => {
     '',
     `User question: "${input.question}"`,
     '',
-    'Answer concisely based only on the data shown above.',
+    'Answer based only on the data shown above. Keep the explanation readable, user-friendly, and grounded in the displayed values.',
   ]
 }
 

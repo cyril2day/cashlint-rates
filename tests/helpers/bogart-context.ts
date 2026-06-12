@@ -8,6 +8,18 @@ export const pairAnalysisBogartContext = (): BogartResultContextDto => ({
     _tag: 'Just',
     value: 'USD/GBP has 7 usable historical observations in the selected period.',
   },
+  chartContext: {
+    _tag: 'Just',
+    value: {
+      title: 'USD/GBP reference-rate history',
+      chartType: 'historical line chart',
+      visualEncoding: 'Each point is one usable historical reference-rate observation; the line connects observations in date order.',
+      xAxis: 'Observation date across the selected historical period.',
+      yAxis: 'Reference rate for 1 USD expressed in GBP.',
+      series: ['USD/GBP reference rate'],
+      plainEnglishDescription: 'The chart shows how the observed USD/GBP reference rate moved across the selected period. USD/GBP has 7 usable historical observations in the selected period.',
+    },
+  },
   computedStats: {
     _tag: 'Just',
     value: {

@@ -52,7 +52,7 @@ import type {
   PairAnalysisViewModelDto,
   PairChartPointDto,
 } from '@/shared/dto/analysis'
-import type { ISODateStringDto, MaybeDto } from '@/shared/dto/api'
+import type { AIChartContextDto, ISODateStringDto, MaybeDto } from '@/shared/dto/api'
 import {
   booleanKey,
   chainResult,
@@ -672,6 +672,19 @@ const chartSummary = (pair: CurrencyPair, count: number): string =>
     true: () => `${pair.base}/${pair.quote} has ${count.toString()} usable historical observations in the selected period.`,
   })[booleanKey(count > 0)]()
 
+const analysisChartContext = (
+  pair: CurrencyPair,
+  summary: string,
+): AIChartContextDto => ({
+  title: `${pair.base}/${pair.quote} reference-rate history`,
+  chartType: 'historical line chart',
+  visualEncoding: 'Each point is one usable historical reference-rate observation; the line connects observations in date order.',
+  xAxis: 'Observation date across the selected historical period.',
+  yAxis: `Reference rate for 1 ${pair.base} expressed in ${pair.quote}.`,
+  series: [`${pair.base}/${pair.quote} reference rate`],
+  plainEnglishDescription: `The chart shows how the observed ${pair.base}/${pair.quote} reference rate moved across the selected period. ${summary}`,
+})
+
 const firstObservationDate = (observations: ReadonlyArray<RateObservation>): Maybe<ISODateStringDto> =>
   mapMaybe((observation: RateObservation) => observation.date)(fromNullable(observations[0]))
 
@@ -826,6 +839,7 @@ const applicableViewModel = (
         dataQualityStatus: dataQuality.status,
       }),
       chartSummary: justDto(summary),
+      chartContext: justDto(analysisChartContext(input.pair, summary)),
       formulaSummaries: formulaSummariesForMetrics(analysisFormulaEntries.map((entry) => entry.metricKey)),
       appDisclaimers: caveats,
     },
@@ -864,6 +878,7 @@ const sameCurrencyViewModel = (input: ValidatedAnalysisInput): PairAnalysisViewM
       keyResults: keyResults(metrics),
       computedStats: justDto({ observationCount: 0, dataQualityStatus: 'same-currency' }),
       chartSummary: justDto(sameCurrencyReason),
+      chartContext: justDto(analysisChartContext(input.pair, sameCurrencyReason)),
       formulaSummaries: formulaSummariesForMetrics(analysisFormulaEntries.map((entry) => entry.metricKey)),
       appDisclaimers: caveats,
     },

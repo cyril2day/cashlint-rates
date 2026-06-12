@@ -26,7 +26,7 @@ import { calculateMovementStats } from '@/server/domain/statistics/movement-stat
 import type { ExchangeRateProvider, HistoricalRateData, ProviderError } from '@/server/ports/rate-provider'
 import { addCalendarDays, isIsoDateBefore } from '@/shared/date'
 import type { AnalysisDateRangeDto, AnalyseDateRangeRequestDto, DataQualityDto } from '@/shared/dto/analysis'
-import type { ISODateStringDto, MaybeDto } from '@/shared/dto/api'
+import type { AIChartContextDto, ISODateStringDto, MaybeDto } from '@/shared/dto/api'
 import type {
   CompareRequestDto,
   ComparisonDataQualityDto,
@@ -919,6 +919,19 @@ const insight = (ranked: ComparisonRankingsDto): string =>
     Nothing: () => 'No selected quote had enough clean observations for variability ranking.',
   })(ranked.mostStableQuote)
 
+const comparisonChartContext = (
+  input: ValidatedComparisonInput,
+  chartSummary: string,
+): AIChartContextDto => ({
+  title: `${input.base} indexed comparison`,
+  chartType: 'indexed multi-line comparison chart',
+  visualEncoding: 'Each quote currency is drawn as its own line indexed to 100 at the start of the selected period.',
+  xAxis: 'Observation date across the selected historical period.',
+  yAxis: 'Indexed value, where 100 is the starting reference level for each quote.',
+  series: input.quotes.map((quote) => `${input.base}/${quote}`),
+  plainEnglishDescription: `The chart compares relative movement between the selected quote currencies. Lines above 100 are higher than their own starting level, and lines below 100 are lower than their own starting level. ${chartSummary}`,
+})
+
 const viewModel = (
   input: ValidatedComparisonInput,
   quoteResults: ReadonlyArray<QuoteSeriesResult>,
@@ -957,6 +970,7 @@ const viewModel = (
         dataQualityStatus: dataQuality.overall.status,
       }),
       chartSummary: justDto(chartSummary),
+      chartContext: justDto(comparisonChartContext(input, chartSummary)),
       formulaSummaries: [],
       appDisclaimers: caveats,
     },

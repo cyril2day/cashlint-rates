@@ -110,6 +110,18 @@ const successViewModel: PairAnalysisViewModelDto = {
     keyResults: [],
     computedStats: { _tag: 'Just', value: { observationCount: 2, dataQualityStatus: 'complete' } },
     chartSummary: { _tag: 'Just', value: 'EUR/JPY has 2 usable historical observations in the selected period.' },
+    chartContext: {
+      _tag: 'Just',
+      value: {
+        title: 'EUR/JPY reference-rate history',
+        chartType: 'historical line chart',
+        visualEncoding: 'Each point is one usable historical reference-rate observation; the line connects observations in date order.',
+        xAxis: 'Observation date across the selected historical period.',
+        yAxis: 'Reference rate for 1 EUR expressed in JPY.',
+        series: ['EUR/JPY reference rate'],
+        plainEnglishDescription: 'The chart shows how the observed EUR/JPY reference rate moved across the selected period. EUR/JPY has 2 usable historical observations in the selected period.',
+      },
+    },
     formulaSummaries: [],
     appDisclaimers: [],
   },

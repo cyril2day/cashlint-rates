@@ -1,5 +1,5 @@
 import { addDays, compareAsc, format, isValid, parseISO } from 'date-fns'
-import type { ISODateStringDto } from '@/shared/dto/api'
+import type { ISODateStringDto, ISODateTimeStringDto } from '@/shared/dto/api'
 import { matchBoolean } from '@/shared/fp'
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/
@@ -30,6 +30,12 @@ export const addCalendarDays = (
 
 export const formatDateReadable = (date: ISODateStringDto): string =>
   format(toDate(date), 'MMMM d, yyyy')
+
+const isoDateTimeDatePart = (dateTime: ISODateTimeStringDto): ISODateStringDto =>
+  dateTime.slice(0, 10)
+
+export const formatDateTimeDateReadable = (dateTime: ISODateTimeStringDto): string =>
+  formatDateReadable(isoDateTimeDatePart(dateTime))
 
 export const isIsoDateBefore = (
   left: ISODateStringDto,

@@ -8,6 +8,16 @@ export type MaybeDto<A> =
   | { readonly _tag: 'Nothing' }
   | { readonly _tag: 'Just', readonly value: A }
 
+export type AIChartContextDto = {
+  readonly title: string
+  readonly chartType: string
+  readonly visualEncoding: string
+  readonly xAxis: string
+  readonly yAxis: string
+  readonly series: ReadonlyArray<string>
+  readonly plainEnglishDescription: string
+}
+
 export type ApiWarningSeverityDto = 'info' | 'warning'
 
 export type ApiWarningDto = {

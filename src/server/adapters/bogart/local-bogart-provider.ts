@@ -1,5 +1,6 @@
 import type { AIExplanationProvider } from '@/server/ports/ai-explanation-provider'
 import type { BogartResultContextDto } from '@/shared/dto/bogart'
+import { formatDateReadable } from '@/shared/date'
 import { matchDtoTag } from '@/shared/fp'
 
 const keyResultText = (context: BogartResultContextDto): string =>
@@ -9,15 +10,20 @@ const keyResultText = (context: BogartResultContextDto): string =>
 
 const dateRangeText = (context: BogartResultContextDto): string =>
   matchDtoTag<typeof context.selectedDateRange, string>({
-    Just: (range) => `The effective period is ${range.value.startDate} to ${range.value.endDate}.`,
+    Just: (range) => `The effective period is ${formatDateReadable(range.value.startDate)} to ${formatDateReadable(range.value.endDate)}.`,
     Nothing: () => 'There is no selected historical period for this result.',
   })(context.selectedDateRange)
 
 const chartText = (context: BogartResultContextDto): string =>
-  matchDtoTag<typeof context.chartSummary, string>({
-    Just: (summary) => summary.value,
-    Nothing: () => 'No chart summary is attached to this result.',
-  })(context.chartSummary)
+  matchDtoTag<typeof context.chartContext, string>({
+    Just: (chart) =>
+      `The visible chart is "${chart.value.title}", a ${chart.value.chartType}. ${chart.value.plainEnglishDescription} The x-axis is ${chart.value.xAxis} The y-axis is ${chart.value.yAxis}`,
+    Nothing: () =>
+      matchDtoTag<typeof context.chartSummary, string>({
+        Just: (summary) => summary.value,
+        Nothing: () => 'No chart is attached to this result.',
+      })(context.chartSummary),
+  })(context.chartContext)
 
 const modeText: Readonly<Record<BogartResultContextDto['mode'], string>> = {
   comparison: 'comparison',

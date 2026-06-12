@@ -13,7 +13,7 @@ const aiProvider: AIExplanationProvider = matchMaybe<string, AIExplanationProvid
     apiKey,
     model: 'gemini-2.5-flash',
     temperature: 0.15,
-    maxOutputTokens: 1200,
+    maxOutputTokens: 1800,
   }),
 })(fromNullable(process.env.GOOGLE_API_KEY))
 

@@ -1,6 +1,7 @@
 import type { AnalysisDateRangeDto, AnalyseDateRangeRequestDto, DataQualityDto } from './analysis'
 import type {
   AttributionDto,
+  AIChartContextDto,
   CurrencyCodeDto,
   CurrencySummaryDto,
   ISODateStringDto,
@@ -123,6 +124,7 @@ export type AIComparisonContextDto = {
     readonly dataQualityStatus: DataQualityDto['status']
   }>
   readonly chartSummary: MaybeDto<string>
+  readonly chartContext: MaybeDto<AIChartContextDto>
   readonly formulaSummaries: ReadonlyArray<never>
   readonly appDisclaimers: ReadonlyArray<string>
 }

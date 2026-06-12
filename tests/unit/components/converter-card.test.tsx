@@ -76,6 +76,7 @@ const successViewModel: ConversionViewModelDto = {
     keyResults: [],
     computedStats: { _tag: 'Nothing' },
     chartSummary: { _tag: 'Nothing' },
+    chartContext: { _tag: 'Nothing' },
     formulaSummaries: [],
     appDisclaimers: [],
   },

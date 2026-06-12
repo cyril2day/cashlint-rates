@@ -124,6 +124,18 @@ const successViewModel: ComparisonViewModelDto = {
     keyResults: [],
     computedStats: { _tag: 'Just', value: { rankableQuoteCount: 2, dataQualityStatus: 'complete' } },
     chartSummary: { _tag: 'Just', value: 'Indexed comparison for USD against 2 quotes.' },
+    chartContext: {
+      _tag: 'Just',
+      value: {
+        title: 'USD indexed comparison',
+        chartType: 'indexed multi-line comparison chart',
+        visualEncoding: 'Each quote currency is drawn as its own line indexed to 100 at the start of the selected period.',
+        xAxis: 'Observation date across the selected historical period.',
+        yAxis: 'Indexed value, where 100 is the starting reference level for each quote.',
+        series: ['USD/EUR', 'USD/GBP'],
+        plainEnglishDescription: 'The chart compares relative movement between the selected quote currencies.',
+      },
+    },
     formulaSummaries: [],
     appDisclaimers: [],
   },

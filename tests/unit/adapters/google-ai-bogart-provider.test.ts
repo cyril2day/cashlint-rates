@@ -84,6 +84,7 @@ describe('createGoogleAIBogartProvider', () => {
 
     expect(text.includes('Bogart')).toBe(true)
     expect(text.includes('Cashlint Rates')).toBe(true)
+    expect(text.includes('user-friendly way')).toBe(true)
   })
 
   it('returns the model response text on success', async () => {
@@ -176,15 +177,20 @@ describe('createGoogleAIBogartProvider', () => {
 
     const contents = lastCallContents()
 
-    expect(contents.includes('2026-06-02')).toBe(true)
-    expect(contents.includes('2026-06-09')).toBe(true)
+    expect(contents.includes('June 2, 2026')).toBe(true)
+    expect(contents.includes('June 9, 2026')).toBe(true)
   })
 
-  it('includes chart summary when available', async () => {
+  it('includes visible chart context when available', async () => {
     mockGenerateContent.mockResolvedValueOnce(withText('OK.'))
 
     await provider.explain({ question: 'Describe the chart', context })
 
-    expect(lastCallContents().includes('7 usable historical observations')).toBe(true)
+    const contents = lastCallContents()
+
+    expect(contents.includes('Visible chart')).toBe(true)
+    expect(contents.includes('USD/GBP reference-rate history')).toBe(true)
+    expect(contents.includes('historical line chart')).toBe(true)
+    expect(contents.includes('7 usable historical observations')).toBe(true)
   })
 })

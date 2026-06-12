@@ -1,5 +1,6 @@
 import type {
   AttributionDto,
+  AIChartContextDto,
   CurrencyCodeDto,
   CurrencySummaryDto,
   ISODateStringDto,
@@ -85,6 +86,7 @@ export type AIResultContextDto = {
   }>
   readonly computedStats: MaybeDto<never>
   readonly chartSummary: MaybeDto<string>
+  readonly chartContext: MaybeDto<AIChartContextDto>
   readonly formulaSummaries: ReadonlyArray<never>
   readonly appDisclaimers: ReadonlyArray<string>
 }

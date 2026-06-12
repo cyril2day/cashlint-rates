@@ -281,6 +281,7 @@ export const toConversionViewModel = (result: ConversionResult): ConversionViewM
     ],
     computedStats: { _tag: 'Nothing' },
     chartSummary: { _tag: 'Nothing' },
+    chartContext: { _tag: 'Nothing' },
     formulaSummaries: [],
     appDisclaimers: ['Reference rates may differ from live market, bank, card or payment-service rates.'],
   },
