@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
 import { matchDtoTag } from '@/shared/fp'
 import { useBogartResultAvailability } from '@/components/bogart'
+import { formatDateReadable } from '@/shared/date'
 
 type ConverterResultProps = {
   readonly result: ConversionViewModelDto
@@ -11,7 +12,7 @@ type ConverterResultProps = {
 
 const effectiveDateText = (result: ConversionViewModelDto): string =>
   matchDtoTag<ConversionViewModelDto['result']['effectiveDate'], string>({
-    Just: (effectiveDate) => `Effective date: ${effectiveDate.value}`,
+    Just: (effectiveDate) => `Effective date: ${formatDateReadable(effectiveDate.value)}`,
     Nothing: () => 'Same-currency conversion has no provider date.',
   })(result.result.effectiveDate)
 

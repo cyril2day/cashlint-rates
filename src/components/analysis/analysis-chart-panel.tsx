@@ -6,6 +6,7 @@ import { none } from 'pristine-charts'
 import { LineChart, formatLineChartNumber } from 'pristine-charts/line-chart'
 import type { PairChartPointDto, PairChartViewModelDto } from '@/shared/dto/analysis'
 import { chainMaybe, fromNullable, matchBoolean, matchMaybe } from '@/shared/fp'
+import { formatDateReadable } from '@/shared/date'
 
 const lineChartPoint = (point: PairChartViewModelDto['points'][number], index: number) => ({
   x: index,
@@ -17,7 +18,7 @@ const formatChartDate =
   (value: number): string =>
     matchMaybe<string, string>({
       none: () => String(value),
-      some: (date) => date,
+      some: formatDateReadable,
     })(
       chainMaybe((p: PairChartPointDto) => fromNullable(p.date))(
         fromNullable(chart.points[Math.round(value)]),

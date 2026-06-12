@@ -6,6 +6,7 @@ import type { KeyboardEvent } from 'react'
 import type { ReactNode } from 'react'
 import type { IndexedComparisonChartViewModelDto } from '@/shared/dto/comparison'
 import { matchBoolean, matchMaybe, matchResult, none, some, type Maybe } from '@/shared/fp'
+import { formatDateReadable } from '@/shared/date'
 import { buildIndexedComparisonChartModel } from './indexed-comparison-chart.model'
 import type { IndexedComparisonRenderedPoint } from './indexed-comparison-chart.model'
 import type { ValidatedIndexedComparisonChart, IndexedComparisonChartError } from './indexed-comparison-chart.domain'
@@ -35,7 +36,7 @@ const clamp = (minimum: number, maximum: number, value: number): number =>
   Math.min(Math.max(value, minimum), maximum)
 
 const pointLabel = (point: IndexedComparisonRenderedPoint): string =>
-  `${point.quote} ${point.date}: index ${point.displayIndexedValue}, rate ${point.displayActualRate}`
+  `${point.quote} ${formatDateReadable(point.date)}: index ${point.displayIndexedValue}, rate ${point.displayActualRate}`
 
 const noop = (): void => {
   void false

@@ -28,6 +28,9 @@ export const addCalendarDays = (
 ): ISODateStringDto =>
   normaliseIsoDate(addDays(toDate(date), days))
 
+export const formatDateReadable = (date: ISODateStringDto): string =>
+  format(toDate(date), 'MMMM d, yyyy')
+
 export const isIsoDateBefore = (
   left: ISODateStringDto,
   right: ISODateStringDto,

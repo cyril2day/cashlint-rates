@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import type { MaybeDto } from '@/shared/dto/api'
 import type { BogartResultContextDto } from '@/shared/dto/bogart'
+import { formatDateReadable } from '@/shared/date'
 import { fromNullable, matchBoolean, matchDtoTag, matchMaybe, none, some } from '@/shared/fp'
 import type { Maybe } from '@/shared/fp'
 
@@ -156,7 +157,7 @@ const dateRangeText = (
   }>,
 ): string =>
   matchDtoTag<typeof dateRange, string>({
-    Just: (value) => `${value.value.startDate} to ${value.value.endDate}`,
+    Just: (value) => `${formatDateReadable(value.value.startDate)} to ${formatDateReadable(value.value.endDate)}`,
     Nothing: () => '',
   })(dateRange)
 

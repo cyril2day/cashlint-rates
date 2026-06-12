@@ -4,13 +4,14 @@ import type { ReactNode } from 'react'
 import type { PairChartPointDto, PairChartViewModelDto } from '@/shared/dto/analysis'
 import { DotPlot } from '@/components/charts'
 import { matchBoolean } from '@/shared/fp'
+import { formatDateReadable } from '@/shared/date'
 
 const observationPoint = (point: PairChartPointDto) => ({
   id: point.date,
-  xLabel: point.date,
+  xLabel: formatDateReadable(point.date),
   yValue: point.rate,
   displayYValue: point.displayRate,
-  ariaLabel: `${point.date}: rate ${point.displayRate}`,
+  ariaLabel: `${formatDateReadable(point.date)}: rate ${point.displayRate}`,
 })
 
 const plottableObservationCount = (chart: PairChartViewModelDto) => chart.points.length >= 2
