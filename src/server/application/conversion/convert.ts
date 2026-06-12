@@ -254,8 +254,9 @@ export const toConversionViewModel = (result: ConversionResult): ConversionViewM
       quote: result.quote,
     },
     compareBase: {
-      href: `/compare?base=${result.base}`,
+      href: `/compare?base=${result.base}&quote=${result.quote}`,
       base: result.base,
+      quote: result.quote,
     },
   },
   attribution,

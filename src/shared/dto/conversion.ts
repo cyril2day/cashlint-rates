@@ -63,6 +63,7 @@ export type AnalyseActionDto = {
 export type CompareActionDto = {
   readonly href: string
   readonly base: CurrencyCodeDto
+  readonly quote: CurrencyCodeDto
 }
 
 export type ConversionActionsDto = {
