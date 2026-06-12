@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Three trend lines on a cartesian plane — no crossing, no X.
+    Transparent background — works on any browser theme.
+  -->
+
+  <!-- Y-axis -->
+  <line x1="96" y1="80" x2="96" y2="432" stroke="#475569" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- X-axis -->
+  <line x1="76" y1="416" x2="462" y2="416" stroke="#475569" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Line A: steepest upward (blue) -->
+  <path d="M104 400 C200 380, 280 180, 432 100"
+        stroke="#2563EB" stroke-width="24" stroke-linecap="round" fill="none"/>
+
+  <!-- Line B: moderate upward (indigo) -->
+  <path d="M104 400 C200 390, 280 260, 432 200"
+        stroke="#7C3AED" stroke-width="24" stroke-linecap="round" fill="none"/>
+
+  <!-- Line C: gentlest upward (amber) -->
+  <path d="M104 400 C200 395, 280 320, 432 300"
+        stroke="#D97706" stroke-width="24" stroke-linecap="round" fill="none"/>
+
+  <!-- Start dot (shared origin on the x-axis) -->
+  <circle cx="104" cy="400" r="20" fill="#2563EB"/>
+  <circle cx="104" cy="400" r="9" fill="#ffffff"/>
+
+  <!-- End dots (fanned out at right) -->
+  <circle cx="432" cy="100" r="16" fill="#2563EB"/>
+  <circle cx="432" cy="200" r="16" fill="#7C3AED"/>
+  <circle cx="432" cy="300" r="16" fill="#D97706"/>
+</svg>
