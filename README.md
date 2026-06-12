@@ -91,3 +91,25 @@ Frankfurter is called from server-side code. There is no client-side exchange-ra
 - `src/server/adapters` - integrations such as Frankfurter and Bogart providers.
 - `src/shared` - DTOs, date helpers, and functional primitives.
 - `tests` - unit, component, and integration coverage.
+
+## Credits
+
+**[Next.js](https://nextjs.org)** and **[React](https://react.dev)** are the framework. App Router, server components, API routes. They let me keep the server and domain boundary clean.
+
+**[date-fns](https://date-fns.org)** handles all the date work. I route it through a shared facade so every part of the app agrees on calendar arithmetic.
+
+**[d3](https://d3js.org)** provides the computation helpers for charting. I use it for the math and keep its DOM utilities separate.
+
+**[KaTeX](https://katex.org)** renders the formula annotations. It is fast and renders cleanly.
+
+**[Ramda](https://ramdajs.com)** is my functional toolkit. I use it in the domain layer for composition and data transforms. Point-free style keeps calculation pipelines clear.
+
+**[pristine-styles](https://npmjs.com/package/pristine-styles)** and **[pristine-charts](https://npmjs.com/package/pristine-charts)** are the design primitives shared across Cashlint apps. They give a consistent look.
+
+**[Sass](https://sass-lang.com)** handles CSS preprocessing. Nesting, variables, modules. It covers what I need.
+
+**[Vitest](https://vitest.dev)** and **[Testing Library](https://testing-library.com)** are the test tooling. Fast execution, clean component tests, sensible defaults.
+
+**[Frankfurter](https://frankfurter.dev)** provides the exchange rate data. No key, no sign-up, just clean reference rates.
+
+**[Google Gemini](https://ai.google.dev)** powers Bogart. A local fallback provider covers development.
