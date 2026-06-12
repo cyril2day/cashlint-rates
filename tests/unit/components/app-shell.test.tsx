@@ -54,7 +54,7 @@ describe('AppShell', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Ask Bogart' }))
 
     expect(await screen.findByRole('dialog', { name: 'Bogart' })).toHaveClass('bogart-modal__panel')
-    expect(screen.getByText('Context: Analyse · USD/GBP · 2026-06-02 to 2026-06-09')).toHaveClass('bogart-modal__context')
+    expect(screen.getByText('Context: Analyse · USD/GBP · June 2, 2026 to June 9, 2026')).toHaveClass('bogart-modal__context')
     expect(screen.getByPlaceholderText('Ask about this chart, formula, or result...')).toBeInTheDocument()
     expect(document.body.style.overflow).toBe('hidden')
     expect(container.querySelector('.app-shell')).toHaveAttribute('inert')

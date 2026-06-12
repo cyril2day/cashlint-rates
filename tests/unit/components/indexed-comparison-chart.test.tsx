@@ -103,8 +103,8 @@ describe('IndexedComparisonChart', () => {
   it('shows point details through the point hit area', () => {
     render(<IndexedComparisonChart ariaLabel={chart.summary} chart={chart} height={240} width={720} />)
 
-    fireEvent.mouseEnter(screen.getByRole('img', { name: 'EUR 2026-06-08: index 102, rate 1.02' }))
+    fireEvent.mouseEnter(screen.getByRole('img', { name: 'EUR June 8, 2026: index 102, rate 1.02' }))
 
-    expect(screen.getByText('EUR 2026-06-08: index 102, rate 1.02')).toBeInTheDocument()
+    expect(screen.getByText('EUR June 8, 2026: index 102, rate 1.02')).toBeInTheDocument()
   })
 })

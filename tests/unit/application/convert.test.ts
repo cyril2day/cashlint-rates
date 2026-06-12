@@ -76,6 +76,6 @@ describe('convert application service', () => {
     expect(viewModel.mode).toBe('conversion')
     expect(viewModel.result.convertedAmount.rawValue).toBe(800)
     expect(viewModel.actions.analysePair.href).toBe('/analyse?base=USD&quote=GBP')
-    expect(viewModel.actions.compareBase.href).toBe('/compare?base=USD')
+    expect(viewModel.actions.compareBase.href).toBe('/compare?base=USD&quote=GBP')
   })
 })

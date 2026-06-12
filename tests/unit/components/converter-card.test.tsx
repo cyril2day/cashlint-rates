@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { PageMemoryProvider } from '@/components/page-memory'
 import { ConverterDashboard } from '@/components/conversion/converter-card'
 import type { ConversionViewModelDto } from '@/shared/dto/conversion'
 
@@ -54,8 +56,9 @@ const successViewModel: ConversionViewModelDto = {
       quote: 'GBP',
     },
     compareBase: {
-      href: '/compare?base=USD',
+      href: '/compare?base=USD&quote=GBP',
       base: 'USD',
+      quote: 'GBP',
     },
   },
   attribution: {
@@ -81,6 +84,24 @@ const successViewModel: ConversionViewModelDto = {
 afterEach(() => {
   vi.restoreAllMocks()
 })
+
+function ConverterMemoryHarness() {
+  const [visible, setVisible] = useState(true)
+
+  return (
+    <PageMemoryProvider>
+      <button
+        type="button"
+        onClick={() => {
+          setVisible((current) => !current)
+        }}
+      >
+        Toggle converter
+      </button>
+      {visible ? <ConverterDashboard /> : null}
+    </PageMemoryProvider>
+  )
+}
 
 describe('ConverterCard', () => {
   it('renders the initial state', () => {
@@ -111,7 +132,38 @@ describe('ConverterCard', () => {
       'href',
       '/analyse?base=USD&quote=GBP',
     )
+    expect(screen.getByRole('link', { name: 'Compare this base' })).toHaveAttribute(
+      'href',
+      '/compare?base=USD&quote=GBP',
+    )
+    expect(screen.getByText('Effective date: June 8, 2026')).toBeInTheDocument()
     expect(screen.queryByText('Questions about this result')).not.toBeInTheDocument()
+  })
+
+  it('remembers the last conversion result after the page remounts', async () => {
+    vi.stubGlobal('fetch', vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ _tag: 'ApiSuccess', data: successViewModel }), {
+          status: 200,
+        }),
+      ),
+    ))
+
+    render(<ConverterMemoryHarness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Convert' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/\$1,000.00 USD = £800.00 GBP/)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle converter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle converter' }))
+
+    expect(screen.getByText(/\$1,000.00 USD = £800.00 GBP/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Compare this base' })).toHaveAttribute(
+      'href',
+      '/compare?base=USD&quote=GBP',
+    )
   })
 
   it('shows the loading state while conversion is pending', () => {
