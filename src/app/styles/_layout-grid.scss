@@ -25,11 +25,16 @@
 .analyse-layout__summary,
 .analyse-layout__formulas,
 .analyse-layout__status,
+.home-layout__result,
 .compare-layout__form,
 .compare-layout__chart,
 .compare-layout__status,
 .compare-layout__full {
   min-width: 0;
+}
+
+.home-layout__result {
+  display: grid;
 }
 
 .analyse-layout__formulas,

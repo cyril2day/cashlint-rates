@@ -98,7 +98,13 @@ html {
   color: var(--clr-text);
   font-family: var(--font-sans);
   scrollbar-gutter: stable;
+  scrollbar-width: none;
   scroll-behavior: smooth;
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 body {
@@ -237,6 +243,8 @@ p {
 .converter-card__message {
   display: grid;
   gap: 10px;
+  height: 100%;
+  align-content: start;
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
   background: var(--clr-surface-muted);
@@ -244,8 +252,6 @@ p {
 }
 
 .converter-card__empty {
-  height: 100%;
-  align-content: start;
   justify-items: start;
   min-height: 220px;
 }
@@ -255,7 +261,9 @@ p {
 }
 
 .converter-card__empty h2 {
-  font-size: 1.2rem;
+  color: var(--clr-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .converter-card__message p,
@@ -1119,7 +1127,7 @@ p {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .app-shell {
     width: min(100% - 24px, 1120px);
     padding-top: 14px;
