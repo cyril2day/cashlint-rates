@@ -1,6 +1,6 @@
 import { CompareCard } from '@/components/comparison/compare-card'
 import { defaultSupportedCurrencyCodes } from '@/server/domain/currency/currency'
-import { chainMaybe, fromNullable, isDefined, matchBoolean, maybeToArray, withDefault } from '@/shared/fp'
+import { anyTrue, chainMaybe, fromNullable, isDefined, matchBoolean, maybeToArray, withDefault } from '@/shared/fp'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,12 +13,10 @@ const findSupportedCode = (candidate: string) =>
     defaultSupportedCurrencyCodes.find((code) => code === candidate.toUpperCase()),
   )
 
-const supportedOrFallback =
-  (fallback: string) =>
-  (candidate: string | undefined): string =>
-    withDefault(fallback)(
-      chainMaybe(findSupportedCode)(fromNullable(candidate)),
-    )
+const supportedOrFallback = (candidate: string | undefined, fallback: string): string =>
+  withDefault(fallback)(
+    chainMaybe(findSupportedCode)(fromNullable(candidate)),
+  )
 
 const toSupportedQuote = (value: string): ReadonlyArray<string> =>
   maybeToArray(chainMaybe(findSupportedCode)(fromNullable(value)))
@@ -37,9 +35,12 @@ const supportedQuotes = (
   })(uniqueQuotes.length > 0)
 }
 
+const seededFromSearchParams = (params: Readonly<Record<string, string | undefined>>): boolean =>
+  anyTrue([isDefined(params.base), isDefined(params.quote), isDefined(params.quotes)])
+
 export default async function ComparePage({ searchParams }: ComparePageProps) {
   const params = await searchParams
-  const initialBase = supportedOrFallback('USD')(params.base)
+  const initialBase = supportedOrFallback(params.base, 'USD')
   const initialQuotes = supportedQuotes(params)
 
   return (
@@ -47,6 +48,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
       currencyCodes={defaultSupportedCurrencyCodes}
       initialBase={initialBase}
       initialQuotes={initialQuotes}
+      seededFromSearchParams={seededFromSearchParams(params)}
     />
   )
 }
